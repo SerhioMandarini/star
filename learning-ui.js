@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   if (document.body.dataset.page !== 'learning') return;
 
+  const THEME_KEY = 'roadstar-learning-theme';
   const plusLink = document.querySelector('[data-learning-plus-link]');
   const plusBadge = document.querySelector('[data-plus-badge]');
   const themeToggle = document.querySelector('[data-theme-toggle]');
@@ -18,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const applyTheme = (theme) => {
     if (!main) return;
     main.setAttribute('data-learning-theme', theme);
+    localStorage.setItem(THEME_KEY, theme);
     themeButtons.forEach((button) => {
       button.classList.toggle('is-active', button.dataset.theme === theme);
     });
@@ -59,6 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  const activeTheme = themeButtons.find((button) => button.classList.contains('is-active'))?.dataset.theme || 'white';
+  const savedTheme = localStorage.getItem(THEME_KEY);
+  const activeTheme = savedTheme || themeButtons.find((button) => button.classList.contains('is-active'))?.dataset.theme || 'white';
   applyTheme(activeTheme);
 });

@@ -357,6 +357,10 @@ h3 {
   gap: 32px;
 }
 
+#interview .section-heading p {
+  padding-top: 12px;
+}
+
 .section-heading h2 {
   font-size: clamp(28px, 4vw, 40px);
 }
@@ -1576,6 +1580,10 @@ body[data-page="dev"] .detail-page-logo {
 }
 
 @media (max-width: 860px) {
+  html {
+    font-size: 13px;
+  }
+
   body:not([data-page="dev"]) .utility-page,
   body[data-page="learning"] .learning-main,
   body[data-page="home"] .hero-section,
@@ -1605,17 +1613,25 @@ body[data-page="dev"] .detail-page-logo {
   }
 
   .card-grid,
-  .interview-actions,
-  .footer-columns,
-  .social-auth,
-  .split-title,
   .plus-grid,
   .payment-summary-grid,
   .dev-cards,
   .profile-summary,
-  .learning-roadmap-grid,
   .learning-resources {
     grid-template-columns: 1fr;
+  }
+
+  body[data-page="home"] .card-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  body[data-page="home"] .interview-actions,
+  body[data-page="home"] .footer-columns,
+  body[data-page="home"] .social-auth,
+  body[data-page="home"] .split-title,
+  body[data-page="learning"] .learning-roadmap-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .cookie-banner {
@@ -1632,38 +1648,348 @@ body[data-page="dev"] .detail-page-logo {
     gap: 18px;
   }
 
+  body:not([data-page="dev"]) .brand-wordmark {
+    font-size: 19px;
+  }
+
+  body[data-page="home"] .top-nav,
+  body[data-page="learning"] .learning-topbar {
+    min-height: 52px;
+  }
+
+  body[data-page="home"] .nav-links a,
+  body[data-page="home"] .nav-action,
+  body[data-page="home"] .register-pill,
+  body[data-page="home"] .profile-trigger,
+  body[data-page="learning"] .learning-plus-link,
+  body[data-page="learning"] .learning-plus-badge,
+  body[data-page="learning"] .learning-tokens,
+  body[data-page="learning"] .learning-profile-btn,
+  body[data-page="learning"] .theme-toggle,
+  body[data-page="plus"] .register-pill,
+  body[data-page="payment"] .register-pill,
+  body[data-page="payment"] .ghost-button {
+    min-height: 34px;
+    padding: 7px 10px;
+    font-size: 11px;
+    border-radius: 12px;
+  }
+
+  body[data-page="home"] .menu-toggle {
+    min-width: 52px;
+    width: 52px;
+    height: 52px;
+    padding: 0 14px;
+    border-radius: 18px;
+  }
+
+  body[data-page="home"] .menu-toggle .line {
+    width: 15px;
+  }
+
+  body[data-page="home"] .menu-toggle-text,
+  body[data-page="home"] .side-menu a,
+  body[data-page="home"] .cookie-copy p,
+  body[data-page="home"] .footer-columns a,
+  body[data-page="home"] .footer-columns p,
+  body[data-page="plus"] .plus-card p,
+  body[data-page="payment"] .plus-card p,
+  body[data-page="learning"] .learning-canvas p,
+  body[data-page="learning"] .learning-canvas span,
+  body[data-page="learning"] .learning-canvas label,
+  body[data-page="learning"] .practice-result {
+    font-size: 11px;
+  }
+
+  body[data-page="home"] .hero-copy h1 {
+    font-size: clamp(26px, 6vw, 34px);
+    margin-bottom: 12px;
+  }
+
+  body[data-page="home"] .section-heading h2,
+  body[data-page="plus"] .utility-card h1,
+  body[data-page="payment"] .utility-card h1,
+  body[data-page="learning"] .learning-header-card h1 {
+    font-size: clamp(22px, 5.4vw, 28px);
+  }
+
+  body[data-page="home"] .section-heading p,
+  body[data-page="home"] .hero-description,
+  body[data-page="home"] .updates-copy p,
+  body[data-page="plus"] .utility-card p,
+  body[data-page="payment"] .utility-card p {
+    font-size: 11px;
+    line-height: 1.45;
+  }
+
+  body[data-page="home"] .glass-card,
+  body[data-page="home"] .action-card,
+  body[data-page="learning"] .roadmap-node,
+  body[data-page="learning"] .article-card,
+  body[data-page="learning"] .practice-card,
+  body[data-page="learning"] .learning-info-card,
+  body[data-page="learning"] .learning-question-card,
+  body[data-page="plus"] .plus-card,
+  body[data-page="payment"] .plus-card {
+    border-radius: 14px;
+  }
+
+  body[data-page="home"] .glass-card {
+    min-height: 76px;
+    padding: 10px;
+  }
+
+  body[data-page="home"] .glass-card strong,
+  body[data-page="home"] .action-card span,
+  body[data-page="learning"] .roadmap-node span,
+  body[data-page="learning"] .article-card strong {
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  body[data-page="home"] .top-shell {
+    top: 10px;
+    width: calc(100% - 16px);
+  }
+
+  body[data-page="home"] .menu-shell {
+    top: 10px;
+    left: 8px;
+    width: 52px;
+    height: 52px;
+    min-height: 52px;
+    border-radius: 18px;
+  }
+
+  body[data-page="home"] .menu-shell.is-open {
+    width: min(240px, calc(100vw - 16px));
+    min-height: 230px;
+    padding-bottom: 10px;
+  }
+
+  body[data-page="home"] .menu-shell.is-open .menu-toggle {
+    width: min(240px, calc(100vw - 16px));
+    gap: 10px;
+  }
+
+  body[data-page="home"] .side-menu {
+    padding: 4px 10px 0;
+    gap: 8px;
+  }
+
+  body[data-page="home"] .side-menu a {
+    padding: 8px 10px;
+    border-radius: 12px;
+  }
+
+  body[data-page="home"] .top-nav {
+    height: 52px;
+    min-height: 52px;
+    width: calc(100% - 60px);
+    padding: 6px 8px 6px 14px;
+    border-radius: 18px;
+    gap: 8px;
+    flex-direction: row;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  body[data-page="home"] .nav-links {
+    flex-wrap: nowrap;
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+    align-items: center;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  body[data-page="home"] .nav-links::-webkit-scrollbar {
+    display: none;
+  }
+
+  body[data-page="home"] .nav-links a {
+    white-space: nowrap;
+    font-size: 11px;
+  }
+
+  body[data-page="home"] .profile-trigger {
+    min-width: 110px;
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  body[data-page="home"] .hero-section {
+    padding-top: 88px;
+    padding-bottom: 32px;
+  }
+
+  body[data-page="home"] .plain-section,
+  body[data-page="home"] .updates-copy,
+  body[data-page="home"] .classic-roadmap,
+  body[data-page="home"] .expectations-form,
+  body[data-page="home"] .footer-inner {
+    width: 100%;
+  }
+
+  body[data-page="home"] .section-heading {
+    grid-template-columns: minmax(150px, 220px) minmax(0, 1fr);
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  body[data-page="home"] #interview .section-heading {
+    grid-template-columns: minmax(150px, 220px) minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  body[data-page="home"] #interview .section-heading p {
+    padding-top: 22px;
+    margin-left: 4px;
+  }
+
+  body[data-page="home"] .section-grade .section-heading {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  body[data-page="home"] .grade-heading {
+    gap: 10px;
+  }
+
+  body[data-page="home"] .grade-plus {
+    padding: 10px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+  }
+
   body[data-page="home"] .interview-actions,
   body[data-page="home"] .cookie-actions,
   body[data-page="plus"] .utility-actions,
   body[data-page="payment"] .utility-actions {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  body[data-page="home"] .split-title {
+    grid-template-columns: 1fr 1fr;
+    min-height: 74px;
+    font-size: clamp(20px, 6vw, 28px);
+  }
+
+  body[data-page="home"] .footer-columns {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  body[data-page="home"] .footer-columns h3,
+  body[data-page="home"] .footer-brand p,
+  body[data-page="home"] .footer-columns p,
+  body[data-page="home"] .footer-columns a {
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
+  body[data-page="home"] .expectations-form {
+    grid-template-columns: 1.3fr 1fr auto;
+    gap: 10px;
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  body[data-page="home"] .expectations-form input,
+  body[data-page="home"] .auth-form input {
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 11px;
+  }
+
+  body[data-page="home"] .profile-drawer {
+    width: min(270px, calc(100vw - 18px));
+    border-radius: 18px 0 0 18px;
+  }
+
+  body[data-page="home"] .profile-drawer-inner {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  body[data-page="home"] .profile-nameplate,
+  body[data-page="home"] .profile-nav a,
+  body[data-page="home"] .support-chat-button,
+  body[data-page="home"] .logout-button,
+  body[data-page="home"] .profile-summary strong,
+  body[data-page="home"] .profile-summary span {
+    font-size: 11px;
+  }
+
+  body[data-page="home"] .auth-modal,
+  body[data-page="learning"] .auth-modal {
+    padding: 10px;
+  }
+
+  body[data-page="home"] .modal-card,
+  body[data-page="learning"] .modal-card {
+    width: min(360px, calc(100vw - 20px));
+    max-height: calc(100vh - 20px);
+    padding: 16px;
+    border-radius: 18px;
+    overflow: auto;
+  }
+
+  body[data-page="home"] .auth-tabs,
+  body[data-page="home"] .social-auth {
+    gap: 8px;
+  }
+
+  body[data-page="home"] .social-button,
+  body[data-page="home"] .auth-form button {
+    min-height: 34px;
+    padding: 8px 10px;
+    font-size: 11px;
   }
 
   body[data-page="plus"] .utility-equal-button,
   body[data-page="payment"] .utility-equal-button,
   body[data-page="plus"] .plus-options .register-pill {
-    width: 100%;
+    width: auto;
   }
 
   body[data-page="plus"] .plus-card,
   body[data-page="payment"] .plus-card {
-    padding: 22px;
-    border-radius: 24px;
+    padding: 14px;
+    border-radius: 16px;
   }
 
   body[data-page="learning"] .learning-topbar {
     position: sticky;
     top: 0;
-    padding: 14px 16px;
-    gap: 14px;
+    height: 52px;
+    min-height: 52px;
+    padding: 6px 10px;
+    gap: 8px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    overflow: hidden;
   }
 
   body[data-page="learning"] .learning-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-    align-items: stretch;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  body[data-page="learning"] .learning-actions::-webkit-scrollbar {
+    display: none;
   }
 
   body[data-page="learning"] .learning-plus-link,
@@ -1671,156 +1997,115 @@ body[data-page="dev"] .detail-page-logo {
   body[data-page="learning"] .learning-tokens,
   body[data-page="learning"] .learning-profile-btn,
   body[data-page="learning"] .theme-switcher-dropdown {
-    width: 100%;
+    width: auto;
     justify-content: center;
+    flex: 0 0 auto;
   }
 
   body[data-page="learning"] .theme-switcher-dropdown {
-    display: block;
+    display: flex;
   }
 
   body[data-page="learning"] .theme-toggle {
-    width: 100%;
+    width: auto;
   }
 
   body[data-page="learning"] .theme-menu {
-    left: 0;
     right: 0;
-    min-width: 0;
+    left: auto;
+    min-width: 140px;
   }
 
   body[data-page="learning"] .learning-tabs {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    gap: 8px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
 
   body[data-page="learning"] .learning-tabs button {
-    width: 100%;
+    width: auto;
+    min-height: 32px;
+    font-size: 11px;
+    padding: 6px 10px;
+    flex: 0 0 auto;
   }
 
   body[data-page="learning"] .learning-progress-card {
     min-width: 0;
+    padding: 10px 12px;
   }
 
   body[data-page="learning"] .learning-modal-head {
-    grid-template-columns: 1fr;
+    display: flex;
     align-items: start;
   }
 
   body[data-page="learning"] .article-modal-footer,
   body[data-page="learning"] .practice-actions {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  body[data-page="learning"] .learning-logo {
+    font-size: 18px;
+  }
+
+  body[data-page="learning"] .learning-main {
+    padding: 12px 10px 18px;
+  }
+
+  body[data-page="learning"] .learning-header-card {
+    grid-template-columns: minmax(0, 1fr) 120px;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding: 12px;
+    border-radius: 16px;
+  }
+
+  body[data-page="learning"] .learning-track {
+    font-size: 9px;
+    margin-bottom: 4px;
+  }
+
+  body[data-page="learning"] .learning-canvas,
+  body[data-page="learning"] .learning-content-modal {
+    padding: 12px;
+    border-radius: 16px;
+  }
+
+  body[data-page="learning"] .roadmap-node,
+  body[data-page="learning"] .article-card,
+  body[data-page="learning"] .learning-question-card,
+  body[data-page="learning"] .practice-card,
+  body[data-page="learning"] .learning-info-card {
+    padding: 10px;
+    border-radius: 12px;
+  }
+
+  body[data-page="learning"] .practice-card textarea,
+  body[data-page="learning"] .learning-question-card textarea {
+    padding: 10px;
+    border-radius: 10px;
+    font-size: 11px;
+  }
+
+  body[data-page="learning"] .learning-roadmap-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  body[data-page="learning"] .learning-resources {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
   }
 }
 
 @media (max-width: 680px) {
-  .hero-section,
-  .light-section,
-  .footer-section,
-  .detail-page,
-  .utility-page {
-    padding-left: 14px;
-    padding-right: 14px;
-  }
-
   body[data-page="dev"] .utility-page {
     padding-left: 18px;
     padding-right: 18px;
-  }
-
-  .hero-section {
-    padding-top: 122px;
-  }
-
-  .top-shell {
-    top: 12px;
-    width: calc(100% - 12px);
-    left: 6px;
-    transform: none;
-  }
-
-  .menu-shell {
-    top: 12px;
-    left: 6px;
-  }
-
-  .menu-toggle {
-    width: 68px;
-    min-width: 68px;
-    height: 64px;
-    padding: 0 20px;
-    border-radius: 22px;
-  }
-
-  .menu-shell.is-open .menu-toggle {
-    width: min(320px, calc(100vw - 24px));
-  }
-
-  .menu-shell.is-open {
-    width: min(320px, calc(100vw - 24px));
-  }
-
-  .side-menu {
-    width: 100%;
-    min-height: 64px;
-    padding-top: 10px;
-  }
-
-  .top-nav {
-    min-height: 64px;
-    border-radius: 22px;
-    gap: 12px;
-    align-items: flex-start;
-    flex-direction: column;
-    width: calc(100% - 74px);
-    margin-left: auto;
-  }
-
-  .learning-topbar {
-    height: auto;
-    padding: 14px;
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .learning-actions,
-  .theme-switcher {
-    width: 100%;
-  }
-
-  .learning-header-card {
-    grid-template-columns: 1fr;
-  }
-
-  .brand-wordmark {
-    font-size: 24px;
-  }
-
-  .nav-links {
-    width: 100%;
-    justify-content: flex-start;
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  .hero-copy h1 {
-    font-size: 38px;
-  }
-
-  .section-grade .section-heading {
-    grid-template-columns: 1fr;
-  }
-
-  #interview .section-heading {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-
-  .section-grade .grade-heading,
-  .section-grade .section-heading > p {
-    grid-column: auto;
   }
 
   .content-block,
@@ -1838,128 +2123,18 @@ body[data-page="dev"] .detail-page-logo {
     padding-top: 20px;
     padding-bottom: 28px;
   }
-
-  body[data-page="plus"] .utility-card h1,
-  body[data-page="payment"] .utility-card h1,
-  body[data-page="learning"] .learning-header-card h1 {
-    font-size: clamp(28px, 8vw, 38px);
-  }
-
-  body[data-page="home"] .hero-copy h1 {
-    font-size: clamp(32px, 10vw, 44px);
-    line-height: 0.98;
-  }
-
-  body[data-page="home"] .hero-description,
-  body[data-page="home"] .section-heading p,
-  body[data-page="home"] .updates-copy p,
-  body[data-page="plus"] .utility-card p,
-  body[data-page="payment"] .utility-card p,
-  body[data-page="learning"] .learning-canvas p {
-    font-size: 15px;
-    line-height: 1.6;
-  }
-
-  .glass-card {
-    min-height: 104px;
-    padding: 18px;
-    border-radius: 20px;
-  }
-
-  body[data-page="home"] .glass-card {
-    min-height: 92px;
-    padding: 16px;
-  }
-
-  .grade-plus,
-  .profile-trigger {
-    width: 100%;
-  }
-
-  .profile-drawer {
-    width: calc(100% - 8px);
-    border-radius: 24px 0 0 24px;
-  }
-
-  body[data-page="home"] .cookie-banner {
-    padding: 16px;
-    border-radius: 20px;
-  }
-
-  body[data-page="learning"] .learning-main {
-    padding: 18px 14px 26px;
-  }
-
-  body[data-page="learning"] .learning-topbar {
-    padding: 12px 14px;
-  }
-
-  body[data-page="learning"] .learning-actions {
-    grid-template-columns: 1fr;
-  }
-
-  body[data-page="learning"] .learning-tabs {
-    grid-template-columns: 1fr;
-  }
-
-  body[data-page="learning"] .learning-header-card,
-  body[data-page="learning"] .learning-canvas,
-  body[data-page="learning"] .learning-content-modal {
-    padding: 18px;
-    border-radius: 22px;
-  }
-
-  body[data-page="learning"] .roadmap-node,
-  body[data-page="learning"] .article-card,
-  body[data-page="learning"] .learning-question-card,
-  body[data-page="learning"] .practice-card,
-  body[data-page="learning"] .learning-info-card {
-    padding: 16px;
-    border-radius: 18px;
-  }
-
-  body[data-page="plus"] .plus-options {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 520px) {
-  body[data-page="home"] .top-shell {
-    width: calc(100% - 12px);
-    left: 6px;
-    transform: none;
-  }
-
-  body[data-page="home"] .top-nav {
-    width: calc(100% - 76px);
-  }
-
-  body[data-page="home"] .menu-toggle {
-    height: 64px;
-    border-radius: 22px;
-  }
-
-  body[data-page="home"] .menu-shell.is-open,
-  body[data-page="home"] .menu-shell.is-open .menu-toggle {
-    width: min(300px, calc(100vw - 24px));
+  html {
+    font-size: 12px;
   }
 
   body[data-page="home"] .section-heading h2,
   body[data-page="home"] .split-title,
   body[data-page="plus"] .plus-card h2,
   body[data-page="payment"] .plus-card h2 {
-    font-size: 24px;
-  }
-
-  body[data-page="home"] .expectations-form button,
-  body[data-page="plus"] .register-pill,
-  body[data-page="payment"] .register-pill,
-  body[data-page="payment"] .ghost-button,
-  body[data-page="learning"] .register-pill,
-  body[data-page="learning"] .ghost-button {
-    width: 100%;
-    justify-content: center;
+    font-size: 18px;
   }
 
   body[data-page="home"] .auth-card,
@@ -1967,5 +2142,128 @@ body[data-page="dev"] .detail-page-logo {
   body[data-page="learning"] .learning-content-modal {
     width: calc(100vw - 20px);
     max-width: none;
+  }
+
+  body[data-page="home"] .hero-copy h1 {
+    font-size: clamp(22px, 7vw, 28px);
+  }
+
+  body[data-page="home"] .hero-description,
+  body[data-page="home"] .section-heading p,
+  body[data-page="home"] .updates-copy p,
+  body[data-page="plus"] .utility-card p,
+  body[data-page="payment"] .utility-card p,
+  body[data-page="learning"] .learning-canvas p,
+  body[data-page="learning"] .learning-canvas span,
+  body[data-page="learning"] .learning-canvas label {
+    font-size: 10px;
+  }
+
+  body[data-page="home"] .nav-links a,
+  body[data-page="home"] .nav-action,
+  body[data-page="home"] .register-pill,
+  body[data-page="home"] .profile-trigger,
+  body[data-page="learning"] .learning-plus-link,
+  body[data-page="learning"] .learning-plus-badge,
+  body[data-page="learning"] .learning-tokens,
+  body[data-page="learning"] .learning-profile-btn,
+  body[data-page="learning"] .theme-toggle,
+  body[data-page="learning"] .learning-tabs button,
+  body[data-page="plus"] .register-pill,
+  body[data-page="payment"] .register-pill,
+  body[data-page="payment"] .ghost-button {
+    min-height: 30px;
+    padding: 6px 8px;
+    font-size: 10px;
+    border-radius: 10px;
+  }
+
+  body[data-page="home"] .glass-card,
+  body[data-page="learning"] .roadmap-node,
+  body[data-page="learning"] .article-card,
+  body[data-page="learning"] .practice-card,
+  body[data-page="learning"] .learning-info-card,
+  body[data-page="learning"] .learning-question-card,
+  body[data-page="plus"] .plus-card,
+  body[data-page="payment"] .plus-card,
+  body[data-page="home"] .expectations-form,
+  body[data-page="plus"] .utility-card,
+  body[data-page="payment"] .utility-card {
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  body[data-page="home"] .glass-card strong,
+  body[data-page="home"] .action-card span,
+  body[data-page="learning"] .roadmap-node span,
+  body[data-page="learning"] .article-card strong,
+  body[data-page="plus"] .plus-card h2,
+  body[data-page="payment"] .plus-card h2 {
+    font-size: 12px;
+  }
+
+  body[data-page="home"] .menu-toggle .line {
+    width: 14px;
+  }
+
+  body[data-page="learning"] .learning-logo,
+  body[data-page="home"] .brand-wordmark,
+  body[data-page="plus"] .brand-wordmark,
+  body[data-page="payment"] .brand-wordmark {
+    font-size: 16px;
+  }
+
+  body[data-page="home"] .card-grid {
+    gap: 8px;
+  }
+
+  body[data-page="home"] .glass-card {
+    min-height: 64px;
+    padding: 8px;
+  }
+
+  body[data-page="home"] .section-heading {
+    grid-template-columns: 120px 1fr;
+  }
+
+  body[data-page="home"] .section-grade .section-heading {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  body[data-page="learning"] .learning-header-card {
+    grid-template-columns: minmax(0, 1fr) 92px;
+    padding: 10px;
+  }
+
+  body[data-page="learning"] .learning-roadmap-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  body[data-page="learning"] .learning-topbar {
+    padding: 5px 8px;
+    gap: 6px;
+  }
+
+  body[data-page="learning"] .theme-menu {
+    min-width: 120px;
+  }
+}
+
+@media (max-width: 390px) {
+  html {
+    font-size: 11px;
+  }
+
+  body[data-page="home"] .hero-copy h1,
+  body[data-page="plus"] .utility-card h1,
+  body[data-page="payment"] .utility-card h1,
+  body[data-page="learning"] .learning-header-card h1 {
+    font-size: 20px;
+  }
+
+  body[data-page="home"] .section-heading h2,
+  body[data-page="home"] .split-title {
+    font-size: 16px;
   }
 }
