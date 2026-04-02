@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roadstar Plus</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Unbounded:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="plus">
+  <main class="utility-page utility-plus">
+    <a class="detail-page-logo page-link" href="index.html" aria-label="Roadstar">
+      <span class="brand-wordmark">Roadstar</span>
+    </a>
+
+    <section class="utility-card glass">
+      <p class="utility-badge">Roadstar Plus</p>
+      <h1 data-plus-title>Доход, аналитика грейда и расширенные возможности роста</h1>
+      <p data-plus-description>Здесь будет расширенный сценарий Plus: аналитика дохода по грейду, закрытые материалы, персональные рекомендации и накопление токенов за подписку и активность.</p>
+
+      <div class="plus-grid">
+        <article class="plus-card">
+          <div class="plus-card-head">
+            <span class="utility-badge utility-badge-inline">Подписка</span>
+            <h2>Купить подписку</h2>
+          </div>
+          <p>Подписка открывает доступ к материалам Plus и ежемесячно начисляет токены для обучения.</p>
+          <div class="plus-options">
+            <a class="register-pill page-link" href="payment.html?type=subscription&period=1">1 месяц</a>
+            <a class="register-pill page-link" href="payment.html?type=subscription&period=3">3 месяца</a>
+            <a class="register-pill page-link" href="payment.html?type=subscription&period=12">12 месяцев</a>
+          </div>
+        </article>
+
+        <article class="plus-card">
+          <div class="plus-card-head">
+            <span class="utility-badge utility-badge-inline">Токены</span>
+            <h2>Купить токены</h2>
+          </div>
+          <p>Токены понадобятся для дополнительных сценариев, закрытых материалов и расширенных возможностей сервиса.</p>
+          <div class="plus-options">
+            <a class="register-pill page-link" href="payment.html?type=tokens&amount=100">100</a>
+            <a class="register-pill page-link" href="payment.html?type=tokens&amount=500">500</a>
+            <a class="register-pill page-link" href="payment.html?type=tokens&amount=1000">1000</a>
+          </div>
+        </article>
+      </div>
+
+      <div class="utility-actions utility-actions-balanced">
+        <a class="register-pill page-link utility-equal-button" href="payment.html">Оформить Plus</a>
+        <a class="ghost-link ghost-button page-link utility-equal-button" href="index.html">Вернуться на главную</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+  <script src="commerce-ui.js"></script>
+</body>
+</html>

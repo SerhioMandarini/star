@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roadstar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Unbounded:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="home">
+  <div class="site-overlay" data-site-overlay hidden></div>
+
+  <div class="top-shell">
+    <nav class="top-nav glass" aria-label="Основная навигация">
+      <a class="nav-logo page-link" href="index.html" aria-label="Roadstar">
+        <span class="brand-wordmark">Roadstar</span>
+      </a>
+
+      <div class="nav-links">
+        <a href="#grade">Проверь себя тестом</a>
+        <a class="accent-link page-link" href="plus.html">Перейти на plus</a>
+        <button class="nav-action auth-open-button" type="button" data-open-auth="login">Войти</button>
+        <button class="nav-action register-pill" type="button" data-open-auth="register">Зарегистрироваться</button>
+        <button class="profile-trigger" type="button" data-profile-trigger hidden></button>
+      </div>
+    </nav>
+  </div>
+
+  <div class="menu-shell glass" data-menu-shell>
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="menu-panel" data-menu-toggle>
+      <span class="menu-toggle-icon" aria-hidden="true">
+        <span class="line"></span>
+        <span class="line"></span>
+        <span class="line"></span>
+      </span>
+      <span class="menu-toggle-text">Меню</span>
+    </button>
+
+    <aside class="side-menu" id="menu-panel" data-menu-panel>
+      <a href="#roadmaps">Дорожные карты</a>
+      <a href="#practice">Практика</a>
+      <a href="#grade">Узнай свой грейд</a>
+      <a href="#interview">Собеседование</a>
+      <a href="#updates">Скоро будет</a>
+    </aside>
+  </div>
+
+  <main>
+    <section class="hero-section dark-section">
+      <div class="hero-copy">
+        <h1>Структурируй<br>Практикуйся<br>Расти</h1>
+        <p class="hero-description">
+          Roadstar помогает выстроить понятный маршрут роста: дорожные карты по ролям, практические задания, тесты на грейд, подготовка к собеседованиям и персональные сценарии развития без лишнего шума.
+        </p>
+      </div>
+
+      <section class="plain-section section-blue" id="roadmaps">
+        <div class="section-heading">
+          <h2>Дорожные карты</h2>
+          <p>
+            Подробные маршруты входа и роста по профессиям: навыки, инструменты, карьерные шаги, полезные ориентиры и понятная последовательность обучения.
+          </p>
+        </div>
+        <div class="card-grid" data-grid="roadmaps"></div>
+      </section>
+
+      <section class="plain-section section-cyan" id="practice">
+        <div class="section-heading">
+          <h2>Практика</h2>
+          <p>
+            Реальные задачи, разбор решений и тренажёры, которые помогают закрепить знания руками и быстрее расти до следующего уровня.
+          </p>
+        </div>
+        <div class="card-grid compact-grid" data-grid="practice"></div>
+      </section>
+
+      <section class="plain-section section-violet section-grade" id="grade">
+        <div class="section-heading">
+          <div class="grade-heading">
+            <h2>Узнай свой грейд</h2>
+            <a class="grade-plus page-link" href="plus.html">Узнай свой доход на твоем грейде</a>
+          </div>
+          <p>
+            Пройди тест, чтобы определить текущий уровень навыков, увидеть сильные стороны и пробелы, получить рекомендации по развитию и понять следующий шаг роста.
+          </p>
+        </div>
+        <div class="card-grid compact-grid" data-grid="grade"></div>
+      </section>
+
+      <section class="plain-section section-red" id="interview">
+        <div class="section-heading">
+          <h2>Подготовка к собеседованию</h2>
+          <p>
+            Этот раздел оформлен с учётом базовых требований российского законодательства: материалы не обещают гарантированное трудоустройство, не содержат дискриминационных критериев и не подменяют официальную консультацию работодателя или юриста.
+          </p>
+        </div>
+
+        <div class="interview-actions">
+          <a class="glass-card action-card red-glass page-link" href="learning.html?track=interview&item=Готовиться!">
+            <span>Готовиться</span>
+          </a>
+          <a class="glass-card action-card red-glass page-link" href="learning.html?track=interview&item=Поделиться опытом">
+            <span>Поделиться опытом прохождения собеседования</span>
+          </a>
+        </div>
+      </section>
+    </section>
+
+    <div class="section-divider" aria-hidden="true"></div>
+
+    <section class="updates-section light-section" id="updates">
+      <div class="split-title" aria-label="Скоро будет">
+        <span class="left">Скоро</span>
+        <span class="right">Будет...</span>
+      </div>
+
+      <div class="updates-copy standalone">
+        <h2>Roadmap развития</h2>
+        <p>
+          Здесь будут появляться ближайшие продуктовые обновления, новые форматы практики, тесты, платные возможности Plus и полезные сервисы вокруг карьерного роста.
+        </p>
+      </div>
+
+      <div class="classic-roadmap" data-timeline>
+        <article class="roadmap-entry">
+          <time datetime="2026-04">Апрель 2026</time>
+          <div class="roadmap-entry-content">
+            <h3>Старт наполнения платформы</h3>
+            <p>Появятся первые настраиваемые модули контента, практика по ролям и единая система карточек для всех направлений.</p>
+          </div>
+        </article>
+      </div>
+
+      <form class="expectations-form" data-updates-form>
+        <div class="expectations-copy">
+          <p class="expectations-label">Мои ожидания</p>
+          <h3>Добавь идею, которую хотел бы увидеть в Roadstar</h3>
+        </div>
+        <label>
+          Событие
+          <input type="text" name="event" placeholder="Что ты хотел бы здесь видеть" required>
+        </label>
+        <button type="submit">Добавить ожидание</button>
+      </form>
+
+    </section>
+
+    <footer class="footer-section" id="footer-info">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <a class="footer-logo page-link" href="index.html" aria-label="Roadstar">
+            <span class="brand-wordmark">Roadstar</span>
+          </a>
+          <p>
+            Платформа для роста в профессии: маршруты обучения, практика, оценка грейда, подготовка к собеседованиям и дальнейшее развитие в формате Plus.
+          </p>
+        </div>
+
+        <div class="footer-columns">
+          <div>
+            <h3>Контакты</h3>
+            <p>Почта: hello@roadstar.ru</p>
+            <p>Поддержка: support@roadstar.ru</p>
+          </div>
+
+          <div>
+            <h3>Навигация</h3>
+            <a href="#roadmaps">Дорожные карты</a>
+            <a href="#practice">Практика</a>
+            <a href="#grade">Узнай свой грейд</a>
+          </div>
+
+          <div>
+            <h3>Правовые документы</h3>
+            <a href="#" data-open-legal="privacy">Политика персональных данных</a>
+            <a href="#" data-open-legal="terms">Пользовательское соглашение</a>
+            <a href="#" data-open-legal="cookies">Политика cookies</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </main>
+
+  <section class="cookie-banner" data-cookie-banner hidden>
+    <div class="cookie-copy">
+      <strong>Мы используем cookies</strong>
+      <p>
+        Cookies нужны для входа в аккаунт, сохранения сессии и улучшения работы сайта. Продолжая пользоваться сервисом, вы соглашаетесь с обработкой данных в соответствии с 152-ФЗ и нашей политикой cookies.
+      </p>
+    </div>
+    <div class="cookie-actions">
+      <button type="button" class="nav-action cookie-secondary" data-cookie-decline>Только необходимые</button>
+      <button type="button" class="register-pill" data-cookie-accept>Принять</button>
+    </div>
+  </section>
+
+  <section class="modal auth-modal" data-auth-modal hidden aria-hidden="true">
+    <div class="modal-card glass auth-card">
+      <button class="modal-close" type="button" aria-label="Закрыть" data-close-auth>&times;</button>
+
+      <div class="auth-tabs auth-tabs-inline">
+        <button type="button" data-auth-tab="login">Войти</button>
+        <button type="button" data-auth-tab="register">Регистрация</button>
+      </div>
+
+      <h1 data-auth-title>Регистрация</h1>
+      <p data-auth-subtitle>Создайте аккаунт для доступа к профессиям, практике, тестам и карьерным сценариям.</p>
+
+      <div class="social-auth">
+        <a class="social-button" href="/api/auth/google" data-oauth-button="google">
+          <span class="social-icon" aria-hidden="true">G</span>
+          <span>Google</span>
+        </a>
+        <a class="social-button" href="/api/auth/yandex" data-oauth-button="yandex">
+          <span class="social-icon" aria-hidden="true">Я</span>
+          <span>Yandex</span>
+        </a>
+        <a class="social-button" href="/api/auth/github" data-oauth-button="github">
+          <span class="social-icon" aria-hidden="true">GH</span>
+          <span>GitHub</span>
+        </a>
+      </div>
+
+      <form class="auth-form" data-auth-form>
+        <label data-name-field>
+          Имя
+          <input type="text" name="name" placeholder="Ваше имя">
+        </label>
+        <label>
+          Email
+          <input type="email" name="email" placeholder="you@example.com" required>
+        </label>
+        <label>
+          Пароль
+          <input type="password" name="password" placeholder="Введите пароль" required>
+        </label>
+        <label class="auth-legal-check">
+          <input type="checkbox" name="consent" required>
+          <span>Я соглашаюсь с обработкой персональных данных, условиями сервиса и использованием обязательных cookies.</span>
+        </label>
+        <button type="submit" data-auth-button>Создать аккаунт</button>
+      </form>
+
+      <p class="auth-status" data-auth-status></p>
+    </div>
+  </section>
+
+  <aside class="profile-drawer glass" data-profile-drawer hidden aria-hidden="true">
+    <div class="profile-drawer-inner">
+      <button class="profile-nameplate" type="button" disabled data-profile-name>Профиль</button>
+      <div class="profile-summary">
+        <div>
+          <span class="profile-label">Plus</span>
+          <strong data-profile-plus>OFF</strong>
+        </div>
+        <div>
+          <span class="profile-label">Токены</span>
+          <strong data-profile-tokens>0</strong>
+        </div>
+      </div>
+
+      <nav class="profile-nav">
+        <a class="page-link profile-nav-link" href="plus.html">Перейти на plus</a>
+        <a class="page-link profile-nav-link" href="learning.html?track=practice&item=Практика">Практика</a>
+        <a class="page-link profile-nav-link" href="learning.html?track=roadmaps&item=Полезные статьи">Полезные статьи</a>
+      </nav>
+
+      <div class="profile-support">
+        <p>Поддержка</p>
+        <button type="button" class="support-chat-button">Чат поддержки</button>
+        <small>Мы рядом, если нужен быстрый ответ по сервису.</small>
+      </div>
+
+      <button type="button" class="logout-button" data-logout-button>Выйти</button>
+    </div>
+  </aside>
+
+  <template id="legal-modal-template">
+    <div class="modal-card glass legal-card">
+      <button class="modal-close" type="button" aria-label="Закрыть" data-close-legal>&times;</button>
+      <h2 data-legal-title></h2>
+      <p data-legal-body></p>
+    </div>
+  </template>
+
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roadstar - Обучение</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Unbounded:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="learning">
+  <div class="learning-shell" data-learning-shell>
+    <header class="learning-topbar">
+      <a class="learning-logo page-link" href="index.html">Roadstar</a>
+
+      <div class="learning-actions">
+        <a class="learning-plus-link page-link" href="plus.html" data-learning-plus-link>Перейти на plus</a>
+        <div class="learning-plus-badge" data-plus-badge hidden title="Плюс активен">PLUS</div>
+        <div class="learning-tokens" data-learning-tokens>0 токенов</div>
+        <button class="learning-profile-btn" type="button" data-learning-auth-login>Войти</button>
+        <button class="learning-profile-btn learning-register" type="button" data-learning-auth-register>Зарегистрироваться</button>
+        <button class="learning-profile-btn" type="button" data-learning-profile hidden></button>
+        <div class="theme-switcher theme-switcher-dropdown" data-theme-switcher>
+          <button type="button" class="theme-toggle" data-theme-toggle>Темы</button>
+          <div class="theme-menu" data-theme-menu hidden>
+            <button type="button" data-theme="white" class="is-active">Белая</button>
+            <button type="button" data-theme="black">Чёрная</button>
+            <button type="button" data-theme="blue">Тёмно-синяя</button>
+            <button type="button" data-theme="beige">Бежевая</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="learning-main" data-learning-theme="white">
+      <section class="learning-header-card">
+        <div>
+          <p class="learning-track" data-learning-track>Дорожные карты</p>
+          <h1 data-learning-title>Frontend Developer</h1>
+          <div class="learning-tabs" data-learning-tabs>
+            <button type="button" data-learning-tab="roadmap" class="is-active">Дорожная карта</button>
+            <button type="button" data-learning-tab="practice">Практика</button>
+            <button type="button" data-learning-tab="mentor">ИИ-репетитор</button>
+            <button type="button" data-learning-tab="grade">Грейд</button>
+            <button type="button" data-learning-tab="interview">Собеседование</button>
+            <button type="button" data-learning-tab="articles">Статьи</button>
+          </div>
+        </div>
+
+        <div class="learning-progress-card">
+          <span>Прогресс</span>
+          <strong data-learning-progress>0%</strong>
+          <div class="progress-bar"><span data-learning-progress-bar></span></div>
+        </div>
+      </section>
+
+      <section class="learning-canvas" data-learning-canvas>
+        <section data-learning-panel="roadmap"></section>
+        <section data-learning-panel="practice" hidden></section>
+        <section data-learning-panel="mentor" hidden></section>
+        <section data-learning-panel="grade" hidden></section>
+        <section data-learning-panel="interview" hidden></section>
+        <section data-learning-panel="articles" hidden></section>
+      </section>
+    </main>
+  </div>
+
+  <section class="modal auth-modal" data-auth-modal hidden aria-hidden="true">
+    <div class="modal-card glass auth-card">
+      <button class="modal-close" type="button" aria-label="Закрыть" data-close-auth>&times;</button>
+      <div class="auth-tabs auth-tabs-inline">
+        <button type="button" data-auth-tab="login">Войти</button>
+        <button type="button" data-auth-tab="register">Регистрация</button>
+      </div>
+      <h1 data-auth-title>Регистрация</h1>
+      <p data-auth-subtitle>Создайте аккаунт для доступа к профессиям, практике, тестам и карьерным сценариям.</p>
+      <form class="auth-form" data-auth-form>
+        <label data-name-field>
+          Имя
+          <input type="text" name="name" placeholder="Ваше имя">
+        </label>
+        <label>
+          Email
+          <input type="email" name="email" placeholder="you@example.com" required>
+        </label>
+        <label>
+          Пароль
+          <input type="password" name="password" placeholder="Введите пароль" required>
+        </label>
+        <label class="auth-legal-check">
+          <input type="checkbox" name="consent" required>
+          <span>Я соглашаюсь с обработкой персональных данных и правилами сервиса.</span>
+        </label>
+        <button type="submit" data-auth-button>Создать аккаунт</button>
+      </form>
+      <p class="auth-status" data-auth-status></p>
+    </div>
+  </section>
+
+  <section class="modal learning-modal" data-learning-modal hidden aria-hidden="true">
+    <div class="modal-card learning-content-modal">
+      <button class="modal-close" type="button" aria-label="Закрыть" data-close-learning-modal>&times;</button>
+      <div class="learning-modal-head">
+        <h2 data-modal-title>Тема</h2>
+        <button type="button" class="register-pill" data-modal-mentor>ИИ-репетитор</button>
+      </div>
+      <p data-modal-text>Скоро будет</p>
+      <div class="learning-resources">
+        <div>
+          <h3>Бесплатные полезные ссылки</h3>
+          <div data-modal-free-links>Скоро будет</div>
+        </div>
+        <div>
+          <h3>Ресурсы plus</h3>
+          <div data-modal-plus-links>Скоро будет</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="modal learning-modal" data-article-modal hidden aria-hidden="true">
+    <div class="modal-card learning-content-modal">
+      <button class="modal-close" type="button" aria-label="Закрыть" data-close-article-modal>&times;</button>
+      <h2 data-article-title>Статья</h2>
+      <p data-article-meta></p>
+      <div class="article-modal-body" data-article-body></div>
+      <div class="article-modal-footer">
+        <button type="button" class="register-pill" data-article-like>Лайк</button>
+        <span data-article-stats></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="modal learning-modal" data-article-create-modal hidden aria-hidden="true">
+    <div class="modal-card learning-content-modal">
+      <button class="modal-close" type="button" aria-label="Закрыть" data-close-create-article>&times;</button>
+      <h2>Добавить свою статью</h2>
+      <form class="dev-stack" data-create-article-form>
+        <label>Название<input type="text" name="title" required></label>
+        <label>Теги<input type="text" name="tags" placeholder="Например: frontend, react"></label>
+        <label>Текст<textarea rows="10" name="body" required></textarea></label>
+        <button type="submit" class="register-pill">Опубликовать</button>
+      </form>
+    </div>
+  </section>
+
+  <div class="site-overlay" data-site-overlay hidden></div>
+  <script src="script.js"></script>
+  <script src="learning-ui.js"></script>
+</body>
+</html>

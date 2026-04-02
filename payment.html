@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roadstar - Оплата</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Unbounded:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="payment">
+  <main class="utility-page utility-plus">
+    <a class="detail-page-logo page-link" href="index.html" aria-label="Roadstar">
+      <span class="brand-wordmark">Roadstar</span>
+    </a>
+
+    <section class="utility-card glass">
+      <p class="utility-badge">Оплата</p>
+      <h1 data-payment-title>Оплата Plus скоро появится</h1>
+      <p data-payment-description>Здесь будет размещена форма оплаты, выбор тарифа, описание преимуществ подписки и история платежей.</p>
+
+      <div class="payment-summary-grid">
+        <article class="plus-card">
+          <span class="utility-badge utility-badge-inline">Выбрано</span>
+          <h2 data-payment-selection>Ничего не выбрано</h2>
+          <p data-payment-selection-description>Выбери подписку или пакет токенов на странице Plus.</p>
+        </article>
+
+        <article class="plus-card">
+          <span class="utility-badge utility-badge-inline">Статистика</span>
+          <h2 data-payment-purchases-count>0 приобретений</h2>
+          <p>Тестовый счётчик фиксирует подтверждённые покупки в локальной версии сайта.</p>
+        </article>
+      </div>
+
+      <div class="utility-actions utility-actions-balanced">
+        <button type="button" class="register-pill utility-equal-button" data-payment-confirm>Подтвердить тестовую покупку</button>
+        <a class="ghost-link ghost-button page-link utility-equal-button" href="plus.html">Вернуться к Plus</a>
+      </div>
+
+      <div class="utility-actions utility-actions-balanced">
+        <a class="ghost-link ghost-button page-link utility-equal-button" href="index.html">На главную</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+  <script src="commerce-ui.js"></script>
+</body>
+</html>

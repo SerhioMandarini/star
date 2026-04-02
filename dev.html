@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roadstar Dev</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Unbounded:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-page="dev">
+  <main class="utility-page">
+    <a class="detail-page-logo page-link" href="index.html" aria-label="Roadstar">
+      <span class="brand-wordmark">Roadstar</span>
+    </a>
+
+    <section class="utility-card glass">
+      <p class="utility-badge">Dev-панель</p>
+      <h1>Управление продуктом</h1>
+      <p>Редактирование главной страницы, обучения, оплаты, профилей и подготовка аналитики.</p>
+    </section>
+
+    <section class="dev-top-tabs">
+      <button type="button" class="dev-tab is-active" data-admin-tab="home">Главная стр</button>
+      <button type="button" class="dev-tab" data-admin-tab="learning">Обучение</button>
+      <button type="button" class="dev-tab" data-admin-tab="payment">Оплата</button>
+      <button type="button" class="dev-tab" data-admin-tab="profiles">Профили</button>
+      <button type="button" class="dev-tab" data-admin-tab="analytics">Аналитика</button>
+    </section>
+
+    <section class="dev-panel" style="width:min(1320px,100%);margin:18px auto 0;">
+      <div class="dev-content">
+        <section data-admin-panel="home">
+          <div class="dev-toolbar">
+            <div class="dev-chip">Главная страница</div>
+            <button type="button" class="dev-primary" data-dev-save-home>Сохранить</button>
+          </div>
+          <div class="dev-form-grid">
+            <label>Hero заголовок<textarea rows="3" data-home-field="heroTitle"></textarea></label>
+            <label>Hero описание<textarea rows="5" data-home-field="heroDescription"></textarea></label>
+            <label>Текст кнопки дохода по грейду<input type="text" data-home-field="gradePlusText"></label>
+          </div>
+          <div class="dev-cards">
+            <article class="dev-card"><h3>Дорожные карты</h3><div class="dev-stack" data-dev-list-editor="roadmaps"></div></article>
+            <article class="dev-card"><h3>Практика</h3><div class="dev-stack" data-dev-list-editor="practice"></div></article>
+            <article class="dev-card"><h3>Грейды</h3><div class="dev-stack" data-dev-list-editor="grade"></div></article>
+          </div>
+        </section>
+
+        <section data-admin-panel="learning" hidden>
+          <div class="dev-toolbar">
+            <div class="dev-chip">Обучение</div>
+            <button type="button" class="dev-primary" data-learning-admin-save>Сохранить обучение</button>
+          </div>
+          <div class="dev-form-grid">
+            <label>Профессия/тема<input type="text" data-learning-admin-field="title"></label>
+            <label>Название раздела<input type="text" data-learning-admin-field="track"></label>
+          </div>
+          <div class="dev-cards">
+            <article class="dev-card"><h3>Дорожная карта</h3><div class="dev-stack" data-admin-roadmap-nodes></div><button type="button" class="dev-primary" data-add-roadmap-node>Добавить узел</button></article>
+            <article class="dev-card"><h3>Практика</h3><div class="dev-stack" data-admin-practice></div></article>
+            <article class="dev-card"><h3>Грейд / Интервью / Статьи</h3><div class="dev-stack" data-admin-other-learning></div></article>
+          </div>
+        </section>
+
+        <section data-admin-panel="payment" hidden>
+          <div class="dev-toolbar">
+            <div class="dev-chip">Оплата и Plus</div>
+            <div class="dev-chip" data-payment-purchases-admin>Приобретений: 0</div>
+            <button type="button" class="dev-primary" data-save-payment>Сохранить оплату</button>
+          </div>
+          <div class="dev-form-grid">
+            <label>Заголовок Plus<input type="text" data-payment-field="plusTitle"></label>
+            <label>Описание Plus<textarea rows="4" data-payment-field="plusDescription"></textarea></label>
+            <label>Заголовок оплаты<input type="text" data-payment-field="paymentTitle"></label>
+            <label>Описание оплаты<textarea rows="4" data-payment-field="paymentDescription"></textarea></label>
+          </div>
+        </section>
+
+        <section data-admin-panel="profiles" hidden>
+          <div class="dev-toolbar">
+            <div class="dev-chip" data-profile-count>Пользователей: 0</div>
+            <div class="dev-chip" data-profile-plus-active-count>Активных Plus: 0</div>
+            <div class="dev-chip" data-profile-service-count>Подключённых сервисов: 0</div>
+          </div>
+          <div class="dev-form-grid">
+            <label>Google token<input type="text" data-service-token="google"></label>
+            <label>GitHub token<input type="text" data-service-token="github"></label>
+            <label>Yandex token<input type="text" data-service-token="yandex"></label>
+            <button type="button" class="dev-primary" data-save-services>Сохранить сервисы</button>
+          </div>
+          <div class="dev-stack" data-users-editor></div>
+        </section>
+
+        <section data-admin-panel="analytics" hidden>
+          <div class="dev-toolbar">
+            <div class="dev-chip">Аналитика</div>
+          </div>
+          <div class="dev-user-card">Раздел подготовлен под будущую аналитику: регистрации, активность, просмотры статей и прогресс обучения.</div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+  <script src="dev-ui.js"></script>
+  <script src="commerce-ui.js"></script>
+</body>
+</html>
