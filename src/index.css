@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  font-family: "Manrope", sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: #09090f;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+.react-flow__attribution {
+  display: none;
+}

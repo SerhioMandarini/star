@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f7f4ee">
   <title>Roadstar - Обучение</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,17 +18,21 @@
       <div class="learning-actions">
         <a class="learning-plus-link page-link" href="plus.html" data-learning-plus-link>Перейти на plus</a>
         <div class="learning-plus-badge" data-plus-badge hidden title="Плюс активен">PLUS</div>
-        <div class="learning-tokens" data-learning-tokens>0 токенов</div>
+        <button class="learning-tokens learning-token-button" type="button" data-learning-tokens-button aria-label="Количество токенов">
+          <span data-learning-tokens>0</span>
+          <span class="learning-token-popover" data-learning-tokens-popover hidden>Количество токенов</span>
+        </button>
         <button class="learning-profile-btn" type="button" data-learning-auth-login>Войти</button>
-        <button class="learning-profile-btn learning-register" type="button" data-learning-auth-register>Зарегистрироваться</button>
         <button class="learning-profile-btn" type="button" data-learning-profile hidden></button>
         <div class="theme-switcher theme-switcher-dropdown" data-theme-switcher>
-          <button type="button" class="theme-toggle" data-theme-toggle>Темы</button>
-          <div class="theme-menu" data-theme-menu hidden>
-            <button type="button" data-theme="white" class="is-active">Белая</button>
-            <button type="button" data-theme="black">Чёрная</button>
-            <button type="button" data-theme="blue">Тёмно-синяя</button>
-            <button type="button" data-theme="beige">Бежевая</button>
+          <button type="button" class="theme-toggle theme-icon-toggle" data-theme-toggle aria-label="Темы">
+            <span data-theme-icon>◐</span>
+          </button>
+          <div class="theme-menu theme-icon-menu" data-theme-menu hidden>
+            <button type="button" data-theme="white" class="is-active" aria-label="Белая">◯</button>
+            <button type="button" data-theme="black" aria-label="Чёрная">⬤</button>
+            <button type="button" data-theme="blue" aria-label="Тёмно-синяя">◉</button>
+            <button type="button" data-theme="beige" aria-label="Бежевая">◌</button>
           </div>
         </div>
       </div>
@@ -35,7 +40,7 @@
 
     <main class="learning-main" data-learning-theme="white">
       <section class="learning-header-card">
-        <div>
+        <div class="learning-header-main">
           <p class="learning-track" data-learning-track>Дорожные карты</p>
           <h1 data-learning-title>Frontend Developer</h1>
           <div class="learning-tabs" data-learning-tabs>

@@ -741,6 +741,209 @@ h3 {
   margin-top: 18px;
 }
 
+.dev-secondary {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #f1efe8;
+  color: #111;
+  border-radius: 16px;
+  padding: 12px 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.dev-secondary.danger {
+  color: #b3261e;
+}
+
+.dev-learning-shell {
+  display: grid;
+  grid-template-columns: 380px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.dev-learning-list,
+.dev-learning-editor,
+.dev-editor-shell,
+.dev-empty-state {
+  display: grid;
+  gap: 18px;
+}
+
+.dev-entry-list {
+  display: grid;
+  gap: 14px;
+}
+
+.dev-entry-card {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border-radius: 24px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.05);
+}
+
+.dev-entry-card-muted {
+  background: #f7f4ee;
+}
+
+.dev-entry-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.dev-entry-copy strong,
+.dev-entry-copy span,
+.dev-editor-body h3,
+.dev-editor-body label,
+.dev-empty-state h3,
+.dev-empty-state p {
+  color: #111;
+}
+
+.dev-entry-actions,
+.dev-editor-actions,
+.dev-editor-head {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dev-subtabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dev-subtab {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #f3f0ea;
+  color: #111;
+  border-radius: 16px;
+  padding: 12px 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.dev-subtab.is-active {
+  background: #111;
+  color: #fff;
+}
+
+.dev-editor-body {
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+  border-radius: 24px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.dev-editor-body textarea {
+  width: 100%;
+  min-height: 260px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #fff;
+  color: #111;
+}
+
+.dev-roadmap-editor,
+.dev-roadmap-section,
+.dev-roadmap-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.dev-roadmap-toolbar,
+.dev-roadmap-settings,
+.dev-roadmap-item-head,
+.dev-roadmap-section-head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.dev-roadmap-settings {
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: #f7f4ee;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.dev-roadmap-item {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 22px;
+  background: #f7f4ee;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.dev-roadmap-item h4,
+.dev-roadmap-section-head h4 {
+  margin: 0;
+  color: #111;
+}
+
+.dev-roadmap-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.dev-roadmap-grid label,
+.dev-roadmap-check {
+  display: grid;
+  gap: 8px;
+  color: #111;
+}
+
+.dev-roadmap-grid-wide {
+  grid-column: 1 / -1;
+}
+
+.dev-roadmap-grid input,
+.dev-roadmap-grid textarea {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #fff;
+  color: #111;
+  padding: 12px 14px;
+}
+
+.dev-roadmap-grid textarea {
+  min-height: 110px;
+}
+
+.dev-roadmap-check {
+  align-content: start;
+}
+
+.dev-roadmap-check input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+}
+
+.dev-roadmap-json {
+  margin: 0;
+  padding: 18px;
+  border-radius: 18px;
+  background: #111;
+  color: #f8f8f8;
+  overflow: auto;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
 .dev-actions button,
 .support-chat-button,
 .logout-button {
@@ -1105,6 +1308,7 @@ body[data-page="dev"] .detail-page-logo {
   gap: 12px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  min-width: 0;
 }
 
 .learning-plus-link,
@@ -1159,6 +1363,15 @@ body[data-page="dev"] .detail-page-logo {
   min-width: 92px;
 }
 
+.theme-icon-toggle {
+  min-width: 34px;
+  width: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .theme-menu {
   position: absolute;
   top: calc(100% + 8px);
@@ -1176,6 +1389,34 @@ body[data-page="dev"] .detail-page-logo {
 .theme-menu button {
   width: 100%;
   text-align: left;
+}
+
+.theme-icon-menu {
+  grid-template-columns: repeat(4, 1fr);
+  min-width: 168px;
+}
+
+.theme-icon-menu button {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.learning-token-button {
+  position: relative;
+}
+
+.learning-token-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(24, 24, 28, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.26);
+  white-space: nowrap;
+  color: #fff;
+  font-size: 12px;
 }
 
 .learning-main {
@@ -1278,6 +1519,10 @@ body[data-page="dev"] .detail-page-logo {
   margin-bottom: 18px;
 }
 
+.learning-header-main {
+  min-width: 0;
+}
+
 .learning-track {
   margin: 0 0 8px;
   font-size: 13px;
@@ -1358,11 +1603,20 @@ body[data-page="dev"] .detail-page-logo {
   color: #fff;
 }
 
+.learning-content-modal .modal-close {
+  display: none;
+}
+
 .learning-modal-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.learning-modal-head h2 {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .learning-resources {
@@ -1577,9 +1831,51 @@ body[data-page="dev"] .detail-page-logo {
   .roadmap-entry {
     grid-template-columns: 1fr;
   }
+
+  .dev-learning-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .dev-roadmap-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 860px) {
+  body[data-page="home"] .top-shell {
+    left: 68px;
+    transform: none;
+    width: calc(100% - 84px);
+  }
+
+  body[data-page="home"] .top-nav {
+    justify-content: space-between;
+  }
+
+  body[data-page="home"] .nav-logo {
+    flex: 0 0 auto;
+  }
+
+  body[data-page="home"] .nav-links {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  body[data-page="home"] .section-heading {
+    align-items: center;
+  }
+
+  body[data-page="home"] .section-heading h2,
+  body[data-page="home"] .grade-heading {
+    align-self: center;
+  }
+
+  body[data-page="home"] .section-heading p {
+    display: flex;
+    align-items: center;
+    min-height: 100%;
+  }
+
   html {
     font-size: 13px;
   }
@@ -1749,7 +2045,8 @@ body[data-page="dev"] .detail-page-logo {
 
   body[data-page="home"] .top-shell {
     top: 10px;
-    width: calc(100% - 16px);
+    width: calc(100% - 76px);
+    left: 60px;
   }
 
   body[data-page="home"] .menu-shell {
@@ -1785,7 +2082,7 @@ body[data-page="dev"] .detail-page-logo {
   body[data-page="home"] .top-nav {
     height: 52px;
     min-height: 52px;
-    width: calc(100% - 60px);
+    width: 100%;
     padding: 6px 8px 6px 14px;
     border-radius: 18px;
     gap: 8px;
@@ -1797,7 +2094,7 @@ body[data-page="dev"] .detail-page-logo {
   body[data-page="home"] .nav-links {
     flex-wrap: nowrap;
     display: flex;
-    gap: 6px;
+    gap: 4px;
     justify-content: flex-end;
     align-items: center;
     min-width: 0;
@@ -1811,12 +2108,12 @@ body[data-page="dev"] .detail-page-logo {
 
   body[data-page="home"] .nav-links a {
     white-space: nowrap;
-    font-size: 11px;
+    font-size: 10px;
   }
 
   body[data-page="home"] .profile-trigger {
-    min-width: 110px;
-    max-width: 140px;
+    min-width: 88px;
+    max-width: 100px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1847,8 +2144,8 @@ body[data-page="dev"] .detail-page-logo {
   }
 
   body[data-page="home"] #interview .section-heading p {
-    padding-top: 22px;
-    margin-left: 4px;
+    padding-top: 10px;
+    margin-left: 0;
   }
 
   body[data-page="home"] .section-grade .section-heading {
@@ -1876,7 +2173,7 @@ body[data-page="dev"] .detail-page-logo {
 
   body[data-page="home"] .split-title {
     grid-template-columns: 1fr 1fr;
-    min-height: 74px;
+    min-height: 56px;
     font-size: clamp(20px, 6vw, 28px);
   }
 
@@ -1974,7 +2271,7 @@ body[data-page="dev"] .detail-page-logo {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    overflow: hidden;
+    overflow: visible;
   }
 
   body[data-page="learning"] .learning-actions {
@@ -2004,6 +2301,8 @@ body[data-page="dev"] .detail-page-logo {
 
   body[data-page="learning"] .theme-switcher-dropdown {
     display: flex;
+    position: relative;
+    z-index: 30;
   }
 
   body[data-page="learning"] .theme-toggle {
@@ -2014,27 +2313,35 @@ body[data-page="dev"] .detail-page-logo {
     right: 0;
     left: auto;
     min-width: 140px;
+    z-index: 31;
+  }
+
+  body[data-page="learning"] .theme-icon-menu {
+    min-width: 120px;
   }
 
   body[data-page="learning"] .learning-tabs {
-    display: flex;
-    gap: 8px;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    overflow: visible;
   }
 
   body[data-page="learning"] .learning-tabs button {
-    width: auto;
+    width: 100%;
     min-height: 32px;
     font-size: 11px;
-    padding: 6px 10px;
-    flex: 0 0 auto;
+    padding: 6px 8px;
+    flex: initial;
   }
 
   body[data-page="learning"] .learning-progress-card {
-    min-width: 0;
-    padding: 10px 12px;
+    min-width: 88px;
+    max-width: 96px;
+    padding: 8px 10px;
+    justify-self: end;
+    align-self: end;
+    margin-top: 0;
   }
 
   body[data-page="learning"] .learning-modal-head {
@@ -2050,6 +2357,7 @@ body[data-page="dev"] .detail-page-logo {
 
   body[data-page="learning"] .learning-logo {
     font-size: 18px;
+    flex: 0 0 auto;
   }
 
   body[data-page="learning"] .learning-main {
@@ -2067,6 +2375,14 @@ body[data-page="dev"] .detail-page-logo {
   body[data-page="learning"] .learning-track {
     font-size: 9px;
     margin-bottom: 4px;
+  }
+
+  body[data-page="learning"] .learning-progress-card strong {
+    font-size: 16px;
+  }
+
+  body[data-page="learning"] .learning-progress-card span {
+    font-size: 10px;
   }
 
   body[data-page="learning"] .learning-canvas,
@@ -2231,7 +2547,7 @@ body[data-page="dev"] .detail-page-logo {
   }
 
   body[data-page="learning"] .learning-header-card {
-    grid-template-columns: minmax(0, 1fr) 92px;
+    grid-template-columns: minmax(0, 1fr) 82px;
     padding: 10px;
   }
 
@@ -2247,6 +2563,21 @@ body[data-page="dev"] .detail-page-logo {
 
   body[data-page="learning"] .theme-menu {
     min-width: 120px;
+  }
+
+  body[data-page="learning"] .learning-progress-card {
+    min-width: 78px;
+    max-width: 82px;
+    padding: 7px 8px;
+    margin-top: 0;
+  }
+
+  body[data-page="learning"] .learning-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-page="learning"] .learning-progress-card strong {
+    font-size: 14px;
   }
 }
 

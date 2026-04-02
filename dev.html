@@ -15,11 +15,7 @@
       <span class="brand-wordmark">Roadstar</span>
     </a>
 
-    <section class="utility-card glass">
-      <p class="utility-badge">Dev-панель</p>
-      <h1>Управление продуктом</h1>
-      <p>Редактирование главной страницы, обучения, оплаты, профилей и подготовка аналитики.</p>
-    </section>
+    
 
     <section class="dev-top-tabs">
       <button type="button" class="dev-tab is-active" data-admin-tab="home">Главная стр</button>
@@ -42,25 +38,33 @@
             <label>Текст кнопки дохода по грейду<input type="text" data-home-field="gradePlusText"></label>
           </div>
           <div class="dev-cards">
-            <article class="dev-card"><h3>Дорожные карты</h3><div class="dev-stack" data-dev-list-editor="roadmaps"></div></article>
-            <article class="dev-card"><h3>Практика</h3><div class="dev-stack" data-dev-list-editor="practice"></div></article>
-            <article class="dev-card"><h3>Грейды</h3><div class="dev-stack" data-dev-list-editor="grade"></div></article>
+            <article class="dev-card">
+              <h3>Профессии на главной</h3>
+              <div class="dev-stack" data-dev-list-editor="roadmaps"></div>
+            </article>
+            <article class="dev-card">
+              <h3>Практика</h3>
+              <div class="dev-stack" data-dev-list-editor="practice"></div>
+            </article>
+            <article class="dev-card">
+              <h3>Грейды</h3>
+              <div class="dev-stack" data-dev-list-editor="grade"></div>
+            </article>
           </div>
         </section>
 
         <section data-admin-panel="learning" hidden>
           <div class="dev-toolbar">
             <div class="dev-chip">Обучение</div>
-            <button type="button" class="dev-primary" data-learning-admin-save>Сохранить обучение</button>
           </div>
-          <div class="dev-form-grid">
-            <label>Профессия/тема<input type="text" data-learning-admin-field="title"></label>
-            <label>Название раздела<input type="text" data-learning-admin-field="track"></label>
-          </div>
-          <div class="dev-cards">
-            <article class="dev-card"><h3>Дорожная карта</h3><div class="dev-stack" data-admin-roadmap-nodes></div><button type="button" class="dev-primary" data-add-roadmap-node>Добавить узел</button></article>
-            <article class="dev-card"><h3>Практика</h3><div class="dev-stack" data-admin-practice></div></article>
-            <article class="dev-card"><h3>Грейд / Интервью / Статьи</h3><div class="dev-stack" data-admin-other-learning></div></article>
+          <div class="dev-learning-shell">
+            <div class="dev-learning-list" data-learning-directory></div>
+            <div class="dev-learning-editor" data-learning-editor>
+              <div class="dev-empty-state">
+                <h3>Выбери профессию или статьи</h3>
+                <p>Слева можно добавить новую профессию, переименовать существующую или перейти к редактированию секций.</p>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -97,13 +101,12 @@
           <div class="dev-toolbar">
             <div class="dev-chip">Аналитика</div>
           </div>
-          <div class="dev-user-card">Раздел подготовлен под будущую аналитику: регистрации, активность, просмотры статей и прогресс обучения.</div>
+          <div class="dev-user-card">Здесь позже будет аналитика по регистрациям, чтению статей, прогрессу и оплатам.</div>
         </section>
       </div>
     </section>
   </main>
 
-  <script src="script.js"></script>
   <script src="dev-ui.js"></script>
   <script src="commerce-ui.js"></script>
 </body>
