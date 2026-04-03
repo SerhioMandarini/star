@@ -236,7 +236,8 @@
     selectedEntry: null,
     selectedSection: 'roadmap',
     selectedRoadmapNodeId: null,
-    pendingConnection: null
+    pendingConnection: null,
+    roadmapTheme: 'white'
   };
 
   const showPanel = (name) => {
@@ -543,6 +544,11 @@
           <div class="dev-chip">Связей: ${roadmap.edges.length}</div>
           <div class="dev-chip">Сетка: 40px</div>
           <div class="dev-chip">${state.pendingConnection ? `Стрелка: ${escapeHtml(state.pendingConnection.nodeId)} / ${escapeHtml(state.pendingConnection.side)}` : 'Соединение: выбери первую точку'}</div>
+          <div class="dev-roadmap-theme-switch">
+            ${['white', 'black', 'blue', 'beige'].map((theme) => `
+              <button type="button" class="dev-secondary ${state.roadmapTheme === theme ? 'is-active' : ''}" data-roadmap-theme="${theme}">${theme}</button>
+            `).join('')}
+          </div>
         </div>
         <div class="dev-roadmap-layout">
           <aside class="dev-roadmap-inspector">
@@ -601,6 +607,20 @@
                 <p>На холсте появится инспектор свойств, цвета и содержимого.</p>
               </div>
             `}
+            <section class="dev-roadmap-section">
+              <div class="dev-roadmap-section-head"><h4>Связи</h4><span>Магнитятся к 4 сторонам узла</span></div>
+              <div class="dev-roadmap-stack">${edgeOptions || '<div class="dev-user-card">Пока нет связей.</div>'}</div>
+              <div class="dev-editor-actions">
+                <button type="button" class="dev-primary" data-save-roadmap-edges>Сохранить связи</button>
+              </div>
+            </section>
+            <section class="dev-roadmap-section">
+              <div class="dev-roadmap-section-head"><h4>JSON preview</h4><span>Можно править вручную и применить</span></div>
+              <textarea class="dev-roadmap-json-editor" rows="18" data-roadmap-json>${escapeHtml(JSON.stringify(roadmap, null, 2))}</textarea>
+              <div class="dev-editor-actions">
+                <button type="button" class="dev-secondary" data-apply-roadmap-json>Применить JSON</button>
+              </div>
+            </section>
           </aside>
           <section class="dev-roadmap-canvas-card">
             <div class="dev-roadmap-canvas-head">
@@ -609,6 +629,9 @@
             </div>
             <div class="dev-roadmap-canvas-scroll">
               <div class="dev-roadmap-canvas-grid" data-roadmap-canvas-grid style="width:${previewWidth}px; height:${previewHeight}px;">
+                <div class="dev-roadmap-learning-bounds" data-preview-theme="${escapeAttr(state.roadmapTheme)}">
+                  <span>Граница видимой области обучения</span>
+                </div>
                 <svg class="dev-roadmap-canvas-lines" data-roadmap-canvas-lines width="${previewWidth}" height="${previewHeight}" viewBox="0 0 ${previewWidth} ${previewHeight}">
                   <defs>
                     <marker id="dev-roadmap-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -622,20 +645,6 @@
             </div>
           </section>
         </div>
-        <section class="dev-roadmap-section">
-          <div class="dev-roadmap-section-head"><h4>Связи</h4><span>Магнитятся к 4 сторонам узла</span></div>
-          <div class="dev-roadmap-stack">${edgeOptions || '<div class="dev-user-card">Пока нет связей.</div>'}</div>
-          <div class="dev-editor-actions">
-            <button type="button" class="dev-primary" data-save-roadmap-edges>Сохранить связи</button>
-          </div>
-        </section>
-        <section class="dev-roadmap-section">
-          <div class="dev-roadmap-section-head"><h4>JSON preview</h4><span>Можно править вручную и применить</span></div>
-          <textarea class="dev-roadmap-json-editor" rows="18" data-roadmap-json>${escapeHtml(JSON.stringify(roadmap, null, 2))}</textarea>
-          <div class="dev-editor-actions">
-            <button type="button" class="dev-secondary" data-apply-roadmap-json>Применить JSON</button>
-          </div>
-        </section>
       </div>
     `;
   };
@@ -783,6 +792,13 @@
             animated: true
           });
         });
+      });
+    });
+
+    learningEditor.querySelectorAll('[data-roadmap-theme]').forEach((button) => {
+      button.addEventListener('click', () => {
+        state.roadmapTheme = button.dataset.roadmapTheme || 'white';
+        renderLearningEditor();
       });
     });
 
