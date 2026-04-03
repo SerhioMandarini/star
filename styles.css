@@ -911,6 +911,7 @@ h3 {
 }
 
 .dev-roadmap-grid input,
+.dev-roadmap-grid select,
 .dev-roadmap-grid textarea {
   width: 100%;
   border-radius: 14px;
@@ -922,6 +923,11 @@ h3 {
 
 .dev-roadmap-grid textarea {
   min-height: 110px;
+}
+
+.dev-roadmap-grid input[type="color"] {
+  padding: 4px;
+  min-height: 44px;
 }
 
 .dev-roadmap-check {
@@ -942,6 +948,49 @@ h3 {
   overflow: auto;
   font-size: 13px;
   line-height: 1.55;
+}
+
+.dev-subtask-editor,
+.dev-subtask-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.dev-subtask-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 18px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.dev-roadmap-preview {
+  overflow: auto;
+}
+
+.dev-roadmap-preview * {
+  pointer-events: none !important;
+}
+
+.dev-roadmap-preview .roadmap-flow-node,
+.dev-roadmap-preview .roadmap-flow-subtask {
+  pointer-events: none;
+}
+
+.dev-roadmap-json-editor {
+  width: 100%;
+  min-height: 320px;
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #111;
+  color: #f8f8f8;
+  font: 13px/1.55 Consolas, monospace;
+}
+
+.dev-roadmap-json-editor.has-error {
+  border-color: #c0392b;
 }
 
 .dev-actions button,
@@ -1519,6 +1568,13 @@ body[data-page="dev"] .detail-page-logo {
   margin-bottom: 18px;
 }
 
+.learning-canvas {
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
 .learning-header-main {
   min-width: 0;
 }
@@ -1580,6 +1636,97 @@ body[data-page="dev"] .detail-page-logo {
   gap: 18px;
 }
 
+.learning-roadmap-stage {
+  position: relative;
+  min-width: 0;
+  min-height: 520px;
+  overflow: auto;
+  padding: 12px 0 24px;
+}
+
+.learning-roadmap-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.learning-roadmap-lines path {
+  fill: none;
+  stroke: #2d7cff;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.learning-roadmap-lines path.is-dashed {
+  stroke-dasharray: 3 7;
+}
+
+.roadmap-flow-node {
+  position: absolute;
+  display: grid;
+  gap: 8px;
+  width: 192px;
+  min-height: 58px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 2px solid rgba(17, 17, 17, 0.12);
+  background: #f8e08a;
+  box-shadow: 0 16px 28px rgba(0, 0, 0, 0.12);
+  color: #111;
+  text-align: left;
+  cursor: pointer;
+}
+
+.roadmap-flow-node.is-muted {
+  filter: saturate(0.92);
+}
+
+.roadmap-flow-node.is-done {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.45), 0 16px 28px rgba(0, 0, 0, 0.12);
+  opacity: 1;
+}
+
+.roadmap-flow-node-head {
+  display: block;
+}
+
+.roadmap-flow-node strong {
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.roadmap-flow-node-subtasks {
+  display: grid;
+  gap: 6px;
+}
+
+.roadmap-flow-subtask {
+  display: block;
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  background: rgba(255, 255, 255, 0.55);
+  color: #111;
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+}
+
+.roadmap-flow-node:focus-visible,
+.roadmap-flow-subtask:focus-visible {
+  outline: 2px solid #2d7cff;
+  outline-offset: 2px;
+}
+
+.learning-modal-actions {
+  margin-top: 18px;
+}
+
 .roadmap-node,
 .article-card {
   width: 100%;
@@ -1598,7 +1745,9 @@ body[data-page="dev"] .detail-page-logo {
 }
 
 .learning-content-modal {
-  width: min(980px, 100%);
+  width: min(1120px, calc(100vw - 32px));
+  max-height: min(88vh, 1100px);
+  overflow: auto;
   background: rgba(18, 18, 20, 0.96);
   color: #fff;
 }
@@ -1622,8 +1771,19 @@ body[data-page="dev"] .detail-page-logo {
 .learning-resources {
   margin-top: 22px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
+  align-items: start;
+}
+
+.learning-resources h3 {
+  margin-bottom: 10px;
+}
+
+.learning-resources div > div {
+  display: grid;
+  gap: 8px;
+  word-break: break-word;
 }
 
 .practice-card,
@@ -2410,6 +2570,22 @@ body[data-page="dev"] .detail-page-logo {
   body[data-page="learning"] .learning-roadmap-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
+  }
+
+  body[data-page="learning"] .roadmap-flow-node {
+    min-width: 118px;
+    max-width: 148px;
+    padding: 8px 9px;
+    border-radius: 12px;
+    gap: 6px;
+  }
+
+  body[data-page="learning"] .roadmap-flow-node strong {
+    font-size: 11px;
+  }
+
+  body[data-page="learning"] .roadmap-flow-subtask {
+    font-size: 9px;
   }
 
   body[data-page="learning"] .learning-resources {

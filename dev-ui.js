@@ -26,41 +26,7 @@
       plusDescription: 'Здесь будет расширенный сценарий Plus: аналитика дохода по грейду, закрытые материалы, персональные рекомендации и накопление токенов за подписку и активность.',
       paymentTitle: 'Оплата Plus скоро появится',
       paymentDescription: 'Здесь будет размещена форма оплаты, выбор тарифа, описание преимуществ подписки и история платежей.'
-    },
-    prompt: `Context:
-I am building a "Roadmap as a Service" web application using React, Tailwind CSS, and React Flow. The app should function like a mix of roadmap.sh and Miro.
-Core Data Structure:
-Define a JSON structure for nodes:
-id: unique string
-type: "skillNode"
-data: { label: string, description: string, color: string, subTasks: [] }
-position: { x: number, y: number }
-Features to Implement:
-Custom Skill Node:
-Create a custom React Flow node component.
-It should have a header (title), a small tag for "Status", and a background color driven by data.color.
-Add a "Settings" button visible only in Dev Mode.
-Dual Mode Logic:
-Create a useState for isDevMode (boolean).
-User Mode: Nodes are draggable but positions are not saved. Interactions are limited to clicking "View Details".
-Dev Mode:
-Enable node dragging with auto-save to local state.
-Show a Floating Toolbar to "Add New Skill" or "Add Connection".
-Implement a Sidebar that opens on node click to edit label, color (via hex input), and description.
-Miro-like Interaction:
-Enable PanOnScroll, SelectionOnDrag, and FitView on initialization.
-Add Background (Dots pattern) and Controls (Zoom/Fit) components from React Flow.
-Persistence Logic:
-Implement an onSave function that logs the current nodes and edges as a formatted JSON to the console.
-Add a "Download Configuration" button to export the roadmap as a .json file.
-Styling:
-Use Tailwind CSS for a clean, dark-themed UI.
-Mobile responsiveness: Nodes should be touch-friendly.
-Instructions:
-Use Functional Components and Hooks (useState, useEffect, useCallback).
-Ensure the connection lines (edges) are "SmoothStep" type with an animated path.
-Provide the full code for App.js and the SkillNode.jsx component.
-import 'reactflow/dist/style.css';`
+    }
   };
 
   const read = (key, fallback) => {
@@ -87,8 +53,30 @@ import 'reactflow/dist/style.css';`
   const getUsers = () => read(K.users, []);
   const getLearningStore = () => read(K.learningByItem, {});
 
+  const normalizeSubTask = (subTask, index = 0) => {
+    if (typeof subTask === 'string') {
+      return {
+        id: `subtask-${index + 1}`,
+        label: subTask,
+        description: '',
+        freeLinks: '',
+        articleLinks: '',
+        plusLinks: '',
+        practiceEnabled: false
+      };
+    }
+    return {
+      id: subTask?.id || `subtask-${index + 1}`,
+      label: subTask?.label || 'Новый подпункт',
+      description: subTask?.description || '',
+      freeLinks: subTask?.freeLinks || '',
+      articleLinks: subTask?.articleLinks || '',
+      plusLinks: subTask?.plusLinks || '',
+      practiceEnabled: Boolean(subTask?.practiceEnabled)
+    };
+  };
+
   const createDefaultRoadmap = () => ({
-    prompt: defaults.prompt,
     settings: {
       isDevModeDefault: true,
       panOnScroll: true,
@@ -104,7 +92,15 @@ import 'reactflow/dist/style.css';`
           description: 'Изучи HTML, семантику, Flexbox, Grid, адаптив и базовую доступность.',
           color: '#2563eb',
           status: 'Core',
-          subTasks: ['Семантика', 'Flexbox и Grid', 'Адаптив']
+          freeLinks: 'MDN HTML, MDN CSS',
+          articleLinks: 'Статья: семантическая вёрстка',
+          plusLinks: 'Plus: чек-лист ревью вёрстки',
+          practiceEnabled: true,
+          subTasks: [
+            normalizeSubTask({ label: 'Семантика', description: 'Изучи структуру документа и правильные теги.' }, 0),
+            normalizeSubTask({ label: 'Flexbox и Grid', description: 'Освой две основные системы раскладки.' }, 1),
+            normalizeSubTask({ label: 'Адаптив', description: 'Подготовь интерфейс под мобильные и планшеты.' }, 2)
+          ]
         },
         position: { x: 80, y: 80 }
       },
@@ -116,7 +112,15 @@ import 'reactflow/dist/style.css';`
           description: 'Пройди синтаксис, функции, массивы, объекты, DOM и асинхронность.',
           color: '#7c3aed',
           status: 'Core',
-          subTasks: ['Функции', 'DOM', 'Async']
+          freeLinks: 'javascript.info, MDN',
+          articleLinks: 'Статья: event loop простыми словами',
+          plusLinks: 'Plus: карта закрепления JS Core',
+          practiceEnabled: true,
+          subTasks: [
+            normalizeSubTask({ label: 'Функции', description: 'Повтори declaration, expression и стрелочные функции.' }, 0),
+            normalizeSubTask({ label: 'DOM', description: 'Разбери работу с деревом документа и событиями.' }, 1),
+            normalizeSubTask({ label: 'Async', description: 'Пойми Promise, async/await и event loop.' }, 2)
+          ]
         },
         position: { x: 380, y: 200 }
       },
@@ -128,14 +132,22 @@ import 'reactflow/dist/style.css';`
           description: 'Разбери компоненты, props, state, эффекты, роутинг и формы.',
           color: '#0f766e',
           status: 'Next',
-          subTasks: ['Компоненты', 'State', 'Routing']
+          freeLinks: 'react.dev',
+          articleLinks: 'Статья: как мыслить компонентами',
+          plusLinks: 'Plus: разбор pet-проекта',
+          practiceEnabled: true,
+          subTasks: [
+            normalizeSubTask({ label: 'Компоненты', description: 'Переиспользование интерфейсов через композицию.' }, 0),
+            normalizeSubTask({ label: 'State', description: 'Локальное состояние и поток данных.' }, 1),
+            normalizeSubTask({ label: 'Routing', description: 'Структура приложения и переходы между экранами.' }, 2)
+          ]
         },
         position: { x: 700, y: 80 }
       }
     ],
     edges: [
-      { id: 'edge-html-js', source: 'html-css', target: 'js-core', type: 'smoothstep', animated: true },
-      { id: 'edge-js-react', source: 'js-core', target: 'react', type: 'smoothstep', animated: true }
+      { id: 'edge-html-js', source: 'html-css', target: 'js-core', sourceSide: 'right', targetSide: 'left', type: 'smoothstep', animated: true },
+      { id: 'edge-js-react', source: 'js-core', target: 'react', sourceSide: 'right', targetSide: 'left', type: 'smoothstep', animated: true }
     ]
   });
 
@@ -143,14 +155,31 @@ import 'reactflow/dist/style.css';`
     const fallback = createDefaultRoadmap();
     if (entry.roadmap && typeof entry.roadmap === 'object') {
       return {
-        prompt: entry.roadmap.prompt || fallback.prompt,
         settings: { ...fallback.settings, ...(entry.roadmap.settings || {}) },
-        nodes: Array.isArray(entry.roadmap.nodes) && entry.roadmap.nodes.length ? entry.roadmap.nodes : fallback.nodes,
-        edges: Array.isArray(entry.roadmap.edges) ? entry.roadmap.edges : fallback.edges
+        nodes: Array.isArray(entry.roadmap.nodes) && entry.roadmap.nodes.length
+          ? entry.roadmap.nodes.map((node, index) => ({
+              ...node,
+              data: {
+                ...node.data,
+                practiceEnabled: Boolean(node.data?.practiceEnabled),
+                subTasks: (node.data?.subTasks || []).map((subTask, subIndex) => normalizeSubTask(subTask, subIndex))
+              }
+            }))
+          : fallback.nodes,
+        edges: Array.isArray(entry.roadmap.edges)
+          ? entry.roadmap.edges.map((edge, index) => ({
+              id: edge.id || `edge-${index + 1}`,
+              source: edge.source || '',
+              target: edge.target || '',
+              sourceSide: edge.sourceSide || 'right',
+              targetSide: edge.targetSide || 'left',
+              type: edge.type || 'smoothstep',
+              animated: edge.animated !== false
+            }))
+          : fallback.edges
       };
     }
-
-    return { ...fallback, prompt: entry.roadmapPrompt || fallback.prompt };
+    return { ...fallback };
   };
 
   const ensureProfessionData = (name) => {
@@ -172,7 +201,17 @@ import 'reactflow/dist/style.css';`
   const createNodeDraft = (index = 0) => ({
     id: `skill-${Date.now()}-${index}`,
     type: 'skillNode',
-    data: { label: 'Новый навык', description: '', color: '#2563eb', status: 'Draft', subTasks: [] },
+    data: {
+      label: 'Новый навык',
+      description: '',
+      color: '#2563eb',
+      status: 'Draft',
+      freeLinks: '',
+      articleLinks: '',
+      plusLinks: '',
+      practiceEnabled: false,
+      subTasks: []
+    },
     position: { x: 120 + index * 40, y: 120 + index * 40 }
   });
 
@@ -180,6 +219,8 @@ import 'reactflow/dist/style.css';`
     id: `edge-${Date.now()}-${index}`,
     source: '',
     target: '',
+    sourceSide: 'right',
+    targetSide: 'left',
     type: 'smoothstep',
     animated: true
   });
@@ -401,12 +442,46 @@ import 'reactflow/dist/style.css';`
           <label>ID<input type="text" value="${escapeHtml(node.id || '')}" data-node-field="id" data-node-index="${index}"></label>
           <label>Type<input type="text" value="${escapeHtml(node.type || 'skillNode')}" data-node-field="type" data-node-index="${index}"></label>
           <label>Label<input type="text" value="${escapeHtml(node.data?.label || '')}" data-node-field="label" data-node-index="${index}"></label>
-          <label>Status<input type="text" value="${escapeHtml(node.data?.status || '')}" data-node-field="status" data-node-index="${index}"></label>
-          <label>Color<input type="text" value="${escapeHtml(node.data?.color || '#2563eb')}" data-node-field="color" data-node-index="${index}"></label>
+          <label>Тип
+            <select data-node-field="status" data-node-index="${index}">
+              <option value="Main" ${(node.data?.status || '') === 'Main' ? 'selected' : ''}>Main</option>
+              <option value="Core" ${(node.data?.status || '') === 'Core' ? 'selected' : ''}>Core</option>
+              <option value="Branch" ${(node.data?.status || '') === 'Branch' ? 'selected' : ''}>Branch</option>
+              <option value="Draft" ${(node.data?.status || '') === 'Draft' ? 'selected' : ''}>Draft</option>
+            </select>
+          </label>
+          <label>Цвет<input type="color" value="${escapeHtml(node.data?.color || '#2563eb')}" data-node-field="color" data-node-index="${index}"></label>
           <label>X<input type="number" value="${Number(node.position?.x || 0)}" data-node-field="x" data-node-index="${index}"></label>
           <label>Y<input type="number" value="${Number(node.position?.y || 0)}" data-node-field="y" data-node-index="${index}"></label>
           <label class="dev-roadmap-grid-wide">Описание<textarea rows="4" data-node-field="description" data-node-index="${index}">${escapeHtml(node.data?.description || '')}</textarea></label>
-          <label class="dev-roadmap-grid-wide">Подзадачи, каждая с новой строки<textarea rows="4" data-node-field="subTasks" data-node-index="${index}">${escapeHtml((node.data?.subTasks || []).join('\n'))}</textarea></label>
+          <label class="dev-roadmap-grid-wide">Полезные ссылки<textarea rows="3" data-node-field="freeLinks" data-node-index="${index}">${escapeHtml(node.data?.freeLinks || '')}</textarea></label>
+          <label class="dev-roadmap-grid-wide">Статьи и материалы<textarea rows="3" data-node-field="articleLinks" data-node-index="${index}">${escapeHtml(node.data?.articleLinks || '')}</textarea></label>
+          <label class="dev-roadmap-grid-wide">Ресурсы plus<textarea rows="3" data-node-field="plusLinks" data-node-index="${index}">${escapeHtml(node.data?.plusLinks || '')}</textarea></label>
+          <label class="dev-roadmap-check"><span>Кнопка практики</span><input type="checkbox" ${node.data?.practiceEnabled ? 'checked' : ''} data-node-field="practiceEnabled" data-node-index="${index}"></label>
+          <div class="dev-roadmap-grid-wide dev-subtask-editor">
+            <div class="dev-roadmap-item-head">
+              <h4>Подпункты</h4>
+              <button type="button" class="dev-secondary" data-add-subtask="${index}">Добавить подпункт</button>
+            </div>
+            <div class="dev-subtask-stack">
+              ${(node.data?.subTasks || []).map((subTask, subIndex) => `
+                <article class="dev-subtask-card">
+                  <div class="dev-roadmap-item-head">
+                    <h4>Подпункт ${subIndex + 1}</h4>
+                    <button type="button" class="dev-secondary danger" data-remove-subtask="${index}:${subIndex}">Удалить</button>
+                  </div>
+                  <div class="dev-roadmap-grid">
+                    <label>Название<input type="text" value="${escapeHtml(subTask.label || '')}" data-subtask-field="label" data-node-index="${index}" data-subtask-index="${subIndex}"></label>
+                    <label class="dev-roadmap-check"><span>Практика</span><input type="checkbox" ${subTask.practiceEnabled ? 'checked' : ''} data-subtask-field="practiceEnabled" data-node-index="${index}" data-subtask-index="${subIndex}"></label>
+                    <label class="dev-roadmap-grid-wide">Описание<textarea rows="3" data-subtask-field="description" data-node-index="${index}" data-subtask-index="${subIndex}">${escapeHtml(subTask.description || '')}</textarea></label>
+                    <label class="dev-roadmap-grid-wide">Полезные ссылки<textarea rows="2" data-subtask-field="freeLinks" data-node-index="${index}" data-subtask-index="${subIndex}">${escapeHtml(subTask.freeLinks || '')}</textarea></label>
+                    <label class="dev-roadmap-grid-wide">Статьи и материалы<textarea rows="2" data-subtask-field="articleLinks" data-node-index="${index}" data-subtask-index="${subIndex}">${escapeHtml(subTask.articleLinks || '')}</textarea></label>
+                    <label class="dev-roadmap-grid-wide">Ресурсы plus<textarea rows="2" data-subtask-field="plusLinks" data-node-index="${index}" data-subtask-index="${subIndex}">${escapeHtml(subTask.plusLinks || '')}</textarea></label>
+                  </div>
+                </article>
+              `).join('') || '<div class="dev-user-card">Пока нет подпунктов.</div>'}
+            </div>
+          </div>
         </div>
       </article>
     `).join('');
@@ -421,6 +496,22 @@ import 'reactflow/dist/style.css';`
           <label>ID<input type="text" value="${escapeHtml(edge.id || '')}" data-edge-field="id" data-edge-index="${index}"></label>
           <label>Source<input type="text" value="${escapeHtml(edge.source || '')}" data-edge-field="source" data-edge-index="${index}"></label>
           <label>Target<input type="text" value="${escapeHtml(edge.target || '')}" data-edge-field="target" data-edge-index="${index}"></label>
+          <label>Точка source
+            <select data-edge-field="sourceSide" data-edge-index="${index}">
+              <option value="top" ${edge.sourceSide === 'top' ? 'selected' : ''}>Верх</option>
+              <option value="right" ${edge.sourceSide === 'right' ? 'selected' : ''}>Право</option>
+              <option value="bottom" ${edge.sourceSide === 'bottom' ? 'selected' : ''}>Низ</option>
+              <option value="left" ${edge.sourceSide === 'left' ? 'selected' : ''}>Лево</option>
+            </select>
+          </label>
+          <label>Точка target
+            <select data-edge-field="targetSide" data-edge-index="${index}">
+              <option value="top" ${edge.targetSide === 'top' ? 'selected' : ''}>Верх</option>
+              <option value="right" ${edge.targetSide === 'right' ? 'selected' : ''}>Право</option>
+              <option value="bottom" ${edge.targetSide === 'bottom' ? 'selected' : ''}>Низ</option>
+              <option value="left" ${edge.targetSide === 'left' ? 'selected' : ''}>Лево</option>
+            </select>
+          </label>
           <label>Type<input type="text" value="${escapeHtml(edge.type || 'smoothstep')}" data-edge-field="type" data-edge-index="${index}"></label>
           <label class="dev-roadmap-check">
             <span>Animated</span>
@@ -439,16 +530,15 @@ import 'reactflow/dist/style.css';`
             <button type="button" class="dev-secondary" data-add-roadmap-edge>Добавить связь</button>
           </div>
         </div>
+        <div class="dev-user-card">
+          Редактор карты работает как схема: задавай положение узлов по X/Y, соединяй их связями и наполняй каждый узел описанием, ссылками, статьями и кнопкой практики.
+        </div>
         <div class="dev-roadmap-settings">
           <label class="dev-roadmap-check"><span>Dev Mode по умолчанию</span><input type="checkbox" ${roadmap.settings?.isDevModeDefault ? 'checked' : ''} data-roadmap-setting="isDevModeDefault"></label>
           <label class="dev-roadmap-check"><span>Pan On Scroll</span><input type="checkbox" ${roadmap.settings?.panOnScroll ? 'checked' : ''} data-roadmap-setting="panOnScroll"></label>
           <label class="dev-roadmap-check"><span>Selection On Drag</span><input type="checkbox" ${roadmap.settings?.selectionOnDrag ? 'checked' : ''} data-roadmap-setting="selectionOnDrag"></label>
           <label class="dev-roadmap-check"><span>Fit View</span><input type="checkbox" ${roadmap.settings?.fitView ? 'checked' : ''} data-roadmap-setting="fitView"></label>
         </div>
-        <label>
-          Prompt для генерации Roadmap / React Flow
-          <textarea rows="14" data-learning-prompt>${escapeHtml(roadmap.prompt || defaults.prompt)}</textarea>
-        </label>
         <section class="dev-roadmap-section">
           <div class="dev-roadmap-section-head"><h4>Узлы</h4><span>${roadmap.nodes?.length || 0} шт.</span></div>
           <div class="dev-roadmap-stack">${nodeCards || '<div class="dev-user-card">Пока нет узлов. Добавь первый навык.</div>'}</div>
@@ -459,14 +549,16 @@ import 'reactflow/dist/style.css';`
         </section>
         <section class="dev-roadmap-section">
           <div class="dev-roadmap-section-head"><h4>JSON preview</h4><span>Проверка структуры перед сохранением</span></div>
-          <pre class="dev-roadmap-json">${escapeHtml(JSON.stringify(roadmap, null, 2))}</pre>
+          <textarea class="dev-roadmap-json-editor" rows="18" data-roadmap-json>${escapeHtml(JSON.stringify(roadmap, null, 2))}</textarea>
+          <div class="dev-editor-actions">
+            <button type="button" class="dev-secondary" data-apply-roadmap-json>Применить JSON</button>
+          </div>
         </section>
       </div>
     `;
   };
 
   const collectRoadmapFromEditor = () => {
-    const prompt = learningEditor.querySelector('[data-learning-prompt]')?.value?.trim() || defaults.prompt;
     const settings = {
       isDevModeDefault: Boolean(learningEditor.querySelector('[data-roadmap-setting="isDevModeDefault"]')?.checked),
       panOnScroll: Boolean(learningEditor.querySelector('[data-roadmap-setting="panOnScroll"]')?.checked),
@@ -485,7 +577,21 @@ import 'reactflow/dist/style.css';`
         status: learningEditor.querySelector(`[data-node-field="status"][data-node-index="${index}"]`)?.value?.trim() || 'Draft',
         color: learningEditor.querySelector(`[data-node-field="color"][data-node-index="${index}"]`)?.value?.trim() || '#2563eb',
         description: learningEditor.querySelector(`[data-node-field="description"][data-node-index="${index}"]`)?.value?.trim() || '',
-        subTasks: parseLines(learningEditor.querySelector(`[data-node-field="subTasks"][data-node-index="${index}"]`)?.value || '')
+        freeLinks: learningEditor.querySelector(`[data-node-field="freeLinks"][data-node-index="${index}"]`)?.value?.trim() || '',
+        articleLinks: learningEditor.querySelector(`[data-node-field="articleLinks"][data-node-index="${index}"]`)?.value?.trim() || '',
+        plusLinks: learningEditor.querySelector(`[data-node-field="plusLinks"][data-node-index="${index}"]`)?.value?.trim() || '',
+        practiceEnabled: Boolean(learningEditor.querySelector(`[data-node-field="practiceEnabled"][data-node-index="${index}"]`)?.checked),
+        subTasks: [...new Set(Array.from(learningEditor.querySelectorAll(`[data-subtask-index][data-node-index="${index}"]`)).map((field) => Number(field.dataset.subtaskIndex)).filter((value) => Number.isFinite(value)))]
+          .sort((a, b) => a - b)
+          .map((subIndex) => ({
+            id: `subtask-${index + 1}-${subIndex + 1}`,
+            label: learningEditor.querySelector(`[data-subtask-field="label"][data-node-index="${index}"][data-subtask-index="${subIndex}"]`)?.value?.trim() || 'Новый подпункт',
+            description: learningEditor.querySelector(`[data-subtask-field="description"][data-node-index="${index}"][data-subtask-index="${subIndex}"]`)?.value?.trim() || '',
+            freeLinks: learningEditor.querySelector(`[data-subtask-field="freeLinks"][data-node-index="${index}"][data-subtask-index="${subIndex}"]`)?.value?.trim() || '',
+            articleLinks: learningEditor.querySelector(`[data-subtask-field="articleLinks"][data-node-index="${index}"][data-subtask-index="${subIndex}"]`)?.value?.trim() || '',
+            plusLinks: learningEditor.querySelector(`[data-subtask-field="plusLinks"][data-node-index="${index}"][data-subtask-index="${subIndex}"]`)?.value?.trim() || '',
+            practiceEnabled: Boolean(learningEditor.querySelector(`[data-subtask-field="practiceEnabled"][data-node-index="${index}"][data-subtask-index="${subIndex}"]`)?.checked)
+          }))
       },
       position: {
         x: Number(learningEditor.querySelector(`[data-node-field="x"][data-node-index="${index}"]`)?.value || 0),
@@ -497,11 +603,77 @@ import 'reactflow/dist/style.css';`
       id: learningEditor.querySelector(`[data-edge-field="id"][data-edge-index="${index}"]`)?.value?.trim() || `edge-${index + 1}`,
       source: learningEditor.querySelector(`[data-edge-field="source"][data-edge-index="${index}"]`)?.value?.trim() || '',
       target: learningEditor.querySelector(`[data-edge-field="target"][data-edge-index="${index}"]`)?.value?.trim() || '',
+      sourceSide: learningEditor.querySelector(`[data-edge-field="sourceSide"][data-edge-index="${index}"]`)?.value?.trim() || 'right',
+      targetSide: learningEditor.querySelector(`[data-edge-field="targetSide"][data-edge-index="${index}"]`)?.value?.trim() || 'left',
       type: learningEditor.querySelector(`[data-edge-field="type"][data-edge-index="${index}"]`)?.value?.trim() || 'smoothstep',
       animated: Boolean(learningEditor.querySelector(`[data-edge-field="animated"][data-edge-index="${index}"]`)?.checked)
     })).filter((edge) => edge.source && edge.target);
 
-    return { prompt, settings, nodes, edges };
+    return { settings, nodes, edges };
+  };
+
+  const sidePoint = (node, side) => {
+    const x = Number(node.position?.x || 0);
+    const y = Number(node.position?.y || 0);
+    const width = 192;
+    const subTasks = Array.isArray(node.data?.subTasks) ? Math.min(node.data.subTasks.length, 4) : 0;
+    const height = 58 + (subTasks ? subTasks * 34 + 8 : 0);
+    if (side === 'top') return { x: x + width / 2, y };
+    if (side === 'bottom') return { x: x + width / 2, y: y + height };
+    if (side === 'left') return { x, y: y + height / 2 };
+    return { x: x + width, y: y + height / 2 };
+  };
+
+  const edgePath = (start, end, sourceSide, targetSide) => {
+    const offset = 28;
+    const from = {
+      top: { x: start.x, y: start.y - offset },
+      right: { x: start.x + offset, y: start.y },
+      bottom: { x: start.x, y: start.y + offset },
+      left: { x: start.x - offset, y: start.y }
+    }[sourceSide] || { x: start.x + offset, y: start.y };
+    const to = {
+      top: { x: end.x, y: end.y - offset },
+      right: { x: end.x + offset, y: end.y },
+      bottom: { x: end.x, y: end.y + offset },
+      left: { x: end.x - offset, y: end.y }
+    }[targetSide] || { x: end.x - offset, y: end.y };
+    return `M ${start.x} ${start.y} L ${from.x} ${from.y} L ${to.x} ${to.y} L ${end.x} ${end.y}`;
+  };
+
+  const renderRoadmapPreview = (roadmap) => {
+    const nodes = roadmap.nodes || [];
+    const edges = roadmap.edges || [];
+    const byId = Object.fromEntries(nodes.map((node) => [node.id, node]));
+    const width = Math.max(...nodes.map((node) => Number(node.position?.x || 0) + 240), 900);
+    const height = Math.max(...nodes.map((node) => Number(node.position?.y || 0) + 180), 520);
+    const lines = edges.map((edge) => {
+      const source = byId[edge.source];
+      const target = byId[edge.target];
+      if (!source || !target) return '';
+      const start = sidePoint(source, edge.sourceSide || 'right');
+      const end = sidePoint(target, edge.targetSide || 'left');
+      return `<path ${edge.animated ? 'class="is-dashed"' : ''} marker-end="url(#preview-arrow)" d="${edgePath(start, end, edge.sourceSide || 'right', edge.targetSide || 'left')}" />`;
+    }).join('');
+    const cards = nodes.map((node) => `
+      <div class="roadmap-flow-node" style="left:${Number(node.position?.x || 0)}px; top:${Number(node.position?.y || 0)}px; border-color:${escapeHtml(node.data?.color || '#d9d9d9')}; background:${escapeHtml(node.data?.color || '#d9d9d9')};">
+        <div class="roadmap-flow-node-head"><strong>${escapeHtml(node.data?.label || 'Без названия')}</strong></div>
+        ${(node.data?.subTasks || []).length ? `<div class="roadmap-flow-node-subtasks">${node.data.subTasks.slice(0, 3).map((item) => `<span>${escapeHtml(item.label || item)}</span>`).join('')}</div>` : ''}
+      </div>
+    `).join('');
+    return `
+      <div class="learning-roadmap-stage" style="width:${width}px; height:${height}px;">
+        <svg class="learning-roadmap-lines" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+          <defs>
+            <marker id="preview-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#2d7cff"></path>
+            </marker>
+          </defs>
+          ${lines}
+        </svg>
+        ${cards}
+      </div>
+    `;
   };
 
   const bindRoadmapEditor = () => {
@@ -551,6 +723,48 @@ import 'reactflow/dist/style.css';`
         write(K.learningByItem, store);
         renderLearningEditor();
       });
+    });
+
+    learningEditor.querySelectorAll('[data-add-subtask]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const nodeIndex = Number(button.dataset.addSubtask);
+        const store = getLearningStore();
+        const current = ensureProfessionData(state.selectedEntry);
+        const roadmap = collectRoadmapFromEditor();
+        roadmap.nodes[nodeIndex].data.subTasks.push(normalizeSubTask({}, roadmap.nodes[nodeIndex].data.subTasks.length));
+        store[state.selectedEntry] = { ...current, roadmap };
+        write(K.learningByItem, store);
+        renderLearningEditor();
+      });
+    });
+
+    learningEditor.querySelectorAll('[data-remove-subtask]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const [nodeIndex, subtaskIndex] = String(button.dataset.removeSubtask).split(':').map(Number);
+        const store = getLearningStore();
+        const current = ensureProfessionData(state.selectedEntry);
+        const roadmap = collectRoadmapFromEditor();
+        roadmap.nodes[nodeIndex].data.subTasks.splice(subtaskIndex, 1);
+        store[state.selectedEntry] = { ...current, roadmap };
+        write(K.learningByItem, store);
+        renderLearningEditor();
+      });
+    });
+
+    learningEditor.querySelector('[data-apply-roadmap-json]')?.addEventListener('click', () => {
+      const field = learningEditor.querySelector('[data-roadmap-json]');
+      if (!field) return;
+      try {
+        field.classList.remove('has-error');
+        const parsed = JSON.parse(field.value);
+        const store = getLearningStore();
+        const current = ensureProfessionData(state.selectedEntry);
+        store[state.selectedEntry] = { ...current, roadmap: normalizeRoadmap({ roadmap: parsed }) };
+        write(K.learningByItem, store);
+        renderLearningEditor();
+      } catch {
+        field.classList.add('has-error');
+      }
     });
   };
 
