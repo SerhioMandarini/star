@@ -234,7 +234,9 @@
     currentTab: tabs.find((tab) => tab.classList.contains('is-active'))?.dataset.adminTab || 'home',
     learningMode: 'list',
     selectedEntry: null,
-    selectedSection: 'roadmap'
+    selectedSection: 'roadmap',
+    selectedRoadmapNodeId: null,
+    pendingConnection: null
   };
 
   const showPanel = (name) => {
@@ -379,6 +381,7 @@
         state.learningMode = 'edit';
         state.selectedEntry = button.dataset.editProfession;
         state.selectedSection = 'roadmap';
+        state.selectedRoadmapNodeId = null;
         ensureProfessionData(state.selectedEntry);
         renderLearningEditor();
       });
@@ -417,6 +420,7 @@
         if (state.selectedEntry === name) {
           state.learningMode = 'list';
           state.selectedEntry = null;
+          state.selectedRoadmapNodeId = null;
         }
         renderHome();
         renderLearning();
@@ -432,71 +436,52 @@
 
   const renderRoadmapEditor = (data) => {
     const roadmap = data.roadmap || createDefaultRoadmap();
-    const nodeCards = (roadmap.nodes || []).map((node, index) => `
-      <article class="dev-roadmap-item">
-        <div class="dev-roadmap-item-head">
-          <h4>Узел ${index + 1}</h4>
-          <button type="button" class="dev-secondary danger" data-remove-roadmap-node="${index}">Удалить</button>
-        </div>
-        <div class="dev-roadmap-grid">
-          <label>ID<input type="text" value="${escapeHtml(node.id || '')}" data-node-field="id" data-node-index="${index}"></label>
-          <label>Type<input type="text" value="${escapeHtml(node.type || 'skillNode')}" data-node-field="type" data-node-index="${index}"></label>
-          <label>Label<input type="text" value="${escapeHtml(node.data?.label || '')}" data-node-field="label" data-node-index="${index}"></label>
-          <label>Тип
-            <select data-node-field="status" data-node-index="${index}">
-              <option value="Main" ${(node.data?.status || '') === 'Main' ? 'selected' : ''}>Main</option>
-              <option value="Core" ${(node.data?.status || '') === 'Core' ? 'selected' : ''}>Core</option>
-              <option value="Branch" ${(node.data?.status || '') === 'Branch' ? 'selected' : ''}>Branch</option>
-              <option value="Draft" ${(node.data?.status || '') === 'Draft' ? 'selected' : ''}>Draft</option>
-            </select>
-          </label>
-          <label>Цвет<input type="color" value="${escapeHtml(node.data?.color || '#2563eb')}" data-node-field="color" data-node-index="${index}"></label>
-          <label>X<input type="number" value="${Number(node.position?.x || 0)}" data-node-field="x" data-node-index="${index}"></label>
-          <label>Y<input type="number" value="${Number(node.position?.y || 0)}" data-node-field="y" data-node-index="${index}"></label>
-          <label class="dev-roadmap-grid-wide">Описание<textarea rows="4" data-node-field="description" data-node-index="${index}">${escapeHtml(node.data?.description || '')}</textarea></label>
-          <label class="dev-roadmap-grid-wide">Полезные ссылки<textarea rows="3" data-node-field="freeLinks" data-node-index="${index}">${escapeHtml(node.data?.freeLinks || '')}</textarea></label>
-          <label class="dev-roadmap-grid-wide">Статьи и материалы<textarea rows="3" data-node-field="articleLinks" data-node-index="${index}">${escapeHtml(node.data?.articleLinks || '')}</textarea></label>
-          <label class="dev-roadmap-grid-wide">Ресурсы plus<textarea rows="3" data-node-field="plusLinks" data-node-index="${index}">${escapeHtml(node.data?.plusLinks || '')}</textarea></label>
-          <label class="dev-roadmap-check"><span>Кнопка практики</span><input type="checkbox" ${node.data?.practiceEnabled ? 'checked' : ''} data-node-field="practiceEnabled" data-node-index="${index}"></label>
-          <div class="dev-roadmap-grid-wide dev-subtask-editor">
-            <div class="dev-roadmap-item-head">
-              <h4>Подпункты</h4>
-              <button type="button" class="dev-secondary" data-add-subtask="${index}">Добавить подпункт</button>
-            </div>
-            <div class="dev-subtask-stack">
-              ${(node.data?.subTasks || []).map((subTask, subIndex) => `
-                <article class="dev-subtask-card">
-                  <div class="dev-roadmap-item-head">
-                    <h4>Подпункт ${subIndex + 1}</h4>
-                    <button type="button" class="dev-secondary danger" data-remove-subtask="${index}:${subIndex}">Удалить</button>
-                  </div>
-                  <div class="dev-roadmap-grid">
-                    <label>Название<input type="text" value="${escapeHtml(subTask.label || '')}" data-subtask-field="label" data-node-index="${index}" data-subtask-index="${subIndex}"></label>
-                    <label class="dev-roadmap-check"><span>Практика</span><input type="checkbox" ${subTask.practiceEnabled ? 'checked' : ''} data-subtask-field="practiceEnabled" data-node-index="${index}" data-subtask-index="${subIndex}"></label>
-                    <label class="dev-roadmap-grid-wide">Описание<textarea rows="3" data-subtask-field="description" data-node-index="${index}" data-subtask-index="${subIndex}">${escapeHtml(subTask.description || '')}</textarea></label>
-                    <label class="dev-roadmap-grid-wide">Полезные ссылки<textarea rows="2" data-subtask-field="freeLinks" data-node-index="${index}" data-subtask-index="${subIndex}">${escapeHtml(subTask.freeLinks || '')}</textarea></label>
-                    <label class="dev-roadmap-grid-wide">Статьи и материалы<textarea rows="2" data-subtask-field="articleLinks" data-node-index="${index}" data-subtask-index="${subIndex}">${escapeHtml(subTask.articleLinks || '')}</textarea></label>
-                    <label class="dev-roadmap-grid-wide">Ресурсы plus<textarea rows="2" data-subtask-field="plusLinks" data-node-index="${index}" data-subtask-index="${subIndex}">${escapeHtml(subTask.plusLinks || '')}</textarea></label>
-                  </div>
-                </article>
-              `).join('') || '<div class="dev-user-card">Пока нет подпунктов.</div>'}
-            </div>
-          </div>
-        </div>
+    if (!state.selectedRoadmapNodeId || !roadmap.nodes.some((node) => node.id === state.selectedRoadmapNodeId)) {
+      state.selectedRoadmapNodeId = roadmap.nodes[0]?.id || null;
+    }
+
+    const selectedNode = roadmap.nodes.find((node) => node.id === state.selectedRoadmapNodeId) || roadmap.nodes[0] || null;
+    const previewWidth = Math.max(...roadmap.nodes.map((node) => Number(node.position?.x || 0) + 260), 1120);
+    const previewHeight = Math.max(...roadmap.nodes.map((node) => Number(node.position?.y || 0) + 220), 640);
+    const byId = Object.fromEntries(roadmap.nodes.map((node) => [node.id, node]));
+    const previewLines = (roadmap.edges || []).map((edge) => {
+      const source = byId[edge.source];
+      const target = byId[edge.target];
+      if (!source || !target) return '';
+      const start = sidePoint(source, edge.sourceSide || 'right');
+      const end = sidePoint(target, edge.targetSide || 'left');
+      return `<path class="${edge.animated ? 'is-dashed' : ''}" marker-end="url(#dev-roadmap-arrow)" d="${edgePath(start, end, edge.sourceSide || 'right', edge.targetSide || 'left')}" />`;
+    }).join('');
+
+    const previewNodes = roadmap.nodes.map((node) => `
+      <article
+        class="dev-roadmap-canvas-node ${state.selectedRoadmapNodeId === node.id ? 'is-selected' : ''}"
+        data-select-roadmap-node="${escapeAttr(node.id)}"
+        data-canvas-node-id="${escapeAttr(node.id)}"
+        style="left:${Number(node.position?.x || 0)}px; top:${Number(node.position?.y || 0)}px; border-color:${escapeAttr(node.data?.color || '#2563eb')}; background:${escapeAttr(node.data?.color || '#2563eb')};"
+      >
+        <button type="button" class="dev-roadmap-canvas-handle top ${state.pendingConnection?.nodeId === node.id && state.pendingConnection?.side === 'top' ? 'is-active' : ''}" data-connect-node="${escapeAttr(node.id)}" data-connect-side="top" aria-label="Соединить сверху"></button>
+        <button type="button" class="dev-roadmap-canvas-handle right ${state.pendingConnection?.nodeId === node.id && state.pendingConnection?.side === 'right' ? 'is-active' : ''}" data-connect-node="${escapeAttr(node.id)}" data-connect-side="right" aria-label="Соединить справа"></button>
+        <button type="button" class="dev-roadmap-canvas-handle bottom ${state.pendingConnection?.nodeId === node.id && state.pendingConnection?.side === 'bottom' ? 'is-active' : ''}" data-connect-node="${escapeAttr(node.id)}" data-connect-side="bottom" aria-label="Соединить снизу"></button>
+        <button type="button" class="dev-roadmap-canvas-handle left ${state.pendingConnection?.nodeId === node.id && state.pendingConnection?.side === 'left' ? 'is-active' : ''}" data-connect-node="${escapeAttr(node.id)}" data-connect-side="left" aria-label="Соединить слева"></button>
+        <strong>${escapeHtml(node.data?.label || 'Новый навык')}</strong>
+        <span>${escapeHtml(node.data?.status || 'Draft')}</span>
       </article>
     `).join('');
 
-    const edgeCards = (roadmap.edges || []).map((edge, index) => `
-      <article class="dev-roadmap-item">
-        <div class="dev-roadmap-item-head">
-          <h4>Связь ${index + 1}</h4>
+    const edgeOptions = (roadmap.edges || []).map((edge, index) => `
+      <article class="dev-roadmap-edge-item">
+        <div class="dev-roadmap-edge-title">
+          <strong>${escapeHtml(edge.id || `edge-${index + 1}`)}</strong>
           <button type="button" class="dev-secondary danger" data-remove-roadmap-edge="${index}">Удалить</button>
         </div>
-        <div class="dev-roadmap-grid">
-          <label>ID<input type="text" value="${escapeHtml(edge.id || '')}" data-edge-field="id" data-edge-index="${index}"></label>
-          <label>Source<input type="text" value="${escapeHtml(edge.source || '')}" data-edge-field="source" data-edge-index="${index}"></label>
-          <label>Target<input type="text" value="${escapeHtml(edge.target || '')}" data-edge-field="target" data-edge-index="${index}"></label>
-          <label>Точка source
+        <div class="dev-roadmap-edge-grid">
+          <label>Откуда
+            <select data-edge-field="source" data-edge-index="${index}">
+              ${roadmap.nodes.map((node) => `<option value="${escapeAttr(node.id)}" ${edge.source === node.id ? 'selected' : ''}>${escapeHtml(node.data?.label || node.id)}</option>`).join('')}
+            </select>
+          </label>
+          <label>Сторона A
             <select data-edge-field="sourceSide" data-edge-index="${index}">
               <option value="top" ${edge.sourceSide === 'top' ? 'selected' : ''}>Верх</option>
               <option value="right" ${edge.sourceSide === 'right' ? 'selected' : ''}>Право</option>
@@ -504,7 +489,12 @@
               <option value="left" ${edge.sourceSide === 'left' ? 'selected' : ''}>Лево</option>
             </select>
           </label>
-          <label>Точка target
+          <label>Куда
+            <select data-edge-field="target" data-edge-index="${index}">
+              ${roadmap.nodes.map((node) => `<option value="${escapeAttr(node.id)}" ${edge.target === node.id ? 'selected' : ''}>${escapeHtml(node.data?.label || node.id)}</option>`).join('')}
+            </select>
+          </label>
+          <label>Сторона B
             <select data-edge-field="targetSide" data-edge-index="${index}">
               <option value="top" ${edge.targetSide === 'top' ? 'selected' : ''}>Верх</option>
               <option value="right" ${edge.targetSide === 'right' ? 'selected' : ''}>Право</option>
@@ -512,43 +502,135 @@
               <option value="left" ${edge.targetSide === 'left' ? 'selected' : ''}>Лево</option>
             </select>
           </label>
-          <label>Type<input type="text" value="${escapeHtml(edge.type || 'smoothstep')}" data-edge-field="type" data-edge-index="${index}"></label>
-          <label class="dev-roadmap-check">
-            <span>Animated</span>
-            <input type="checkbox" ${edge.animated ? 'checked' : ''} data-edge-field="animated" data-edge-index="${index}">
+        </div>
+      </article>
+    `).join('');
+
+    const subTasks = (selectedNode?.data?.subTasks || []).map((subTask, index) => `
+      <article class="dev-roadmap-subtask-card">
+        <div class="dev-roadmap-item-head">
+          <h4>Подпункт ${index + 1}</h4>
+          <button type="button" class="dev-secondary danger" data-remove-subtask="${index}">Удалить</button>
+        </div>
+        <div class="dev-roadmap-grid">
+          <label>Название<input type="text" value="${escapeAttr(subTask.label || '')}" data-selected-subtask-field="label" data-selected-subtask-index="${index}"></label>
+          <label>Практика
+            <select data-selected-subtask-field="practiceEnabled" data-selected-subtask-index="${index}">
+              <option value="false" ${!subTask.practiceEnabled ? 'selected' : ''}>Нет</option>
+              <option value="true" ${subTask.practiceEnabled ? 'selected' : ''}>Да</option>
+            </select>
           </label>
+          <label class="dev-roadmap-grid-wide">Описание<textarea rows="3" data-selected-subtask-field="description" data-selected-subtask-index="${index}">${escapeHtml(subTask.description || '')}</textarea></label>
+          <label class="dev-roadmap-grid-wide">Полезные ссылки<textarea rows="2" data-selected-subtask-field="freeLinks" data-selected-subtask-index="${index}">${escapeHtml(subTask.freeLinks || '')}</textarea></label>
+          <label class="dev-roadmap-grid-wide">Статьи<textarea rows="2" data-selected-subtask-field="articleLinks" data-selected-subtask-index="${index}">${escapeHtml(subTask.articleLinks || '')}</textarea></label>
+          <label class="dev-roadmap-grid-wide">Ресурсы plus<textarea rows="2" data-selected-subtask-field="plusLinks" data-selected-subtask-index="${index}">${escapeHtml(subTask.plusLinks || '')}</textarea></label>
         </div>
       </article>
     `).join('');
 
     return `
-      <div class="dev-roadmap-editor">
+      <div class="dev-roadmap-studio">
         <div class="dev-roadmap-toolbar">
-          <div class="dev-chip">Редактор React Flow</div>
+          <div class="dev-chip">Roadmap Studio</div>
           <div class="dev-editor-actions">
             <button type="button" class="dev-secondary" data-add-roadmap-node>Добавить узел</button>
             <button type="button" class="dev-secondary" data-add-roadmap-edge>Добавить связь</button>
+            <button type="button" class="dev-secondary" data-roadmap-center>Собрать компактно</button>
           </div>
         </div>
-        <div class="dev-user-card">
-          Редактор карты работает как схема: задавай положение узлов по X/Y, соединяй их связями и наполняй каждый узел описанием, ссылками, статьями и кнопкой практики.
+        <div class="dev-roadmap-meta">
+          <div class="dev-chip">Узлов: ${roadmap.nodes.length}</div>
+          <div class="dev-chip">Связей: ${roadmap.edges.length}</div>
+          <div class="dev-chip">Сетка: 40px</div>
+          <div class="dev-chip">${state.pendingConnection ? `Стрелка: ${escapeHtml(state.pendingConnection.nodeId)} / ${escapeHtml(state.pendingConnection.side)}` : 'Соединение: выбери первую точку'}</div>
         </div>
-        <div class="dev-roadmap-settings">
-          <label class="dev-roadmap-check"><span>Dev Mode по умолчанию</span><input type="checkbox" ${roadmap.settings?.isDevModeDefault ? 'checked' : ''} data-roadmap-setting="isDevModeDefault"></label>
-          <label class="dev-roadmap-check"><span>Pan On Scroll</span><input type="checkbox" ${roadmap.settings?.panOnScroll ? 'checked' : ''} data-roadmap-setting="panOnScroll"></label>
-          <label class="dev-roadmap-check"><span>Selection On Drag</span><input type="checkbox" ${roadmap.settings?.selectionOnDrag ? 'checked' : ''} data-roadmap-setting="selectionOnDrag"></label>
-          <label class="dev-roadmap-check"><span>Fit View</span><input type="checkbox" ${roadmap.settings?.fitView ? 'checked' : ''} data-roadmap-setting="fitView"></label>
+        <div class="dev-roadmap-layout">
+          <aside class="dev-roadmap-inspector">
+            ${selectedNode ? `
+              <div class="dev-roadmap-canvas-head">
+                <h4>Инспектор узла</h4>
+                <p>Слева инструменты и свойства, справа большой холст. Узлы можно таскать прямо по сетке.</p>
+              </div>
+              <div class="dev-roadmap-grid">
+                <label>ID<input type="text" value="${escapeAttr(selectedNode.id || '')}" data-selected-node-field="id"></label>
+                <label>Тип<input type="text" value="${escapeAttr(selectedNode.type || 'skillNode')}" data-selected-node-field="type"></label>
+                <label>Название<input type="text" value="${escapeAttr(selectedNode.data?.label || '')}" data-selected-node-field="label"></label>
+                <label>Статус
+                  <select data-selected-node-field="status">
+                    <option value="Main" ${(selectedNode.data?.status || '') === 'Main' ? 'selected' : ''}>Main</option>
+                    <option value="Core" ${(selectedNode.data?.status || '') === 'Core' ? 'selected' : ''}>Core</option>
+                    <option value="Branch" ${(selectedNode.data?.status || '') === 'Branch' ? 'selected' : ''}>Branch</option>
+                    <option value="Draft" ${(selectedNode.data?.status || '') === 'Draft' ? 'selected' : ''}>Draft</option>
+                  </select>
+                </label>
+                <label>Цвет<input type="color" value="${escapeAttr(selectedNode.data?.color || '#2563eb')}" data-selected-node-field="color"></label>
+                <label>Практика
+                  <select data-selected-node-field="practiceEnabled">
+                    <option value="false" ${!selectedNode.data?.practiceEnabled ? 'selected' : ''}>Нет</option>
+                    <option value="true" ${selectedNode.data?.practiceEnabled ? 'selected' : ''}>Да</option>
+                  </select>
+                </label>
+                <label>X<input type="number" value="${Number(selectedNode.position?.x || 0)}" data-selected-node-field="x"></label>
+                <label>Y<input type="number" value="${Number(selectedNode.position?.y || 0)}" data-selected-node-field="y"></label>
+                <label class="dev-roadmap-grid-wide">Описание<textarea rows="4" data-selected-node-field="description">${escapeHtml(selectedNode.data?.description || '')}</textarea></label>
+                <label class="dev-roadmap-grid-wide">Полезные ссылки<textarea rows="3" data-selected-node-field="freeLinks">${escapeHtml(selectedNode.data?.freeLinks || '')}</textarea></label>
+                <label class="dev-roadmap-grid-wide">Статьи<textarea rows="3" data-selected-node-field="articleLinks">${escapeHtml(selectedNode.data?.articleLinks || '')}</textarea></label>
+                <label class="dev-roadmap-grid-wide">Ресурсы plus<textarea rows="3" data-selected-node-field="plusLinks">${escapeHtml(selectedNode.data?.plusLinks || '')}</textarea></label>
+              </div>
+              <div class="dev-roadmap-position-controls">
+                <button type="button" class="dev-secondary" data-move-node="up">↑</button>
+                <button type="button" class="dev-secondary" data-move-node="left">←</button>
+                <button type="button" class="dev-secondary" data-move-node="right">→</button>
+                <button type="button" class="dev-secondary" data-move-node="down">↓</button>
+                <button type="button" class="dev-primary" data-save-selected-node>Применить узел</button>
+                <button type="button" class="dev-secondary danger" data-delete-selected-node>Удалить узел</button>
+              </div>
+              <section class="dev-roadmap-subtasks">
+                <div class="dev-roadmap-item-head">
+                  <h4>Подзадачи</h4>
+                  <button type="button" class="dev-secondary" data-add-subtask>Добавить подпункт</button>
+                </div>
+                <div class="dev-subtask-stack">
+                  ${subTasks || '<div class="dev-user-card">Пока нет подпунктов.</div>'}
+                </div>
+                <button type="button" class="dev-primary" data-save-subtasks>Сохранить подпункты</button>
+              </section>
+            ` : `
+              <div class="dev-empty-state">
+                <h3>Выбери узел</h3>
+                <p>На холсте появится инспектор свойств, цвета и содержимого.</p>
+              </div>
+            `}
+          </aside>
+          <section class="dev-roadmap-canvas-card">
+            <div class="dev-roadmap-canvas-head">
+              <h4>Холст</h4>
+              <p>Таскай узлы мышкой. Для связи нажми точку на одном навыке и затем точку на другом.</p>
+            </div>
+            <div class="dev-roadmap-canvas-scroll">
+              <div class="dev-roadmap-canvas-grid" data-roadmap-canvas-grid style="width:${previewWidth}px; height:${previewHeight}px;">
+                <svg class="dev-roadmap-canvas-lines" data-roadmap-canvas-lines width="${previewWidth}" height="${previewHeight}" viewBox="0 0 ${previewWidth} ${previewHeight}">
+                  <defs>
+                    <marker id="dev-roadmap-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1f6fff"></path>
+                    </marker>
+                  </defs>
+                  ${previewLines}
+                </svg>
+                ${previewNodes}
+              </div>
+            </div>
+          </section>
         </div>
         <section class="dev-roadmap-section">
-          <div class="dev-roadmap-section-head"><h4>Узлы</h4><span>${roadmap.nodes?.length || 0} шт.</span></div>
-          <div class="dev-roadmap-stack">${nodeCards || '<div class="dev-user-card">Пока нет узлов. Добавь первый навык.</div>'}</div>
+          <div class="dev-roadmap-section-head"><h4>Связи</h4><span>Магнитятся к 4 сторонам узла</span></div>
+          <div class="dev-roadmap-stack">${edgeOptions || '<div class="dev-user-card">Пока нет связей.</div>'}</div>
+          <div class="dev-editor-actions">
+            <button type="button" class="dev-primary" data-save-roadmap-edges>Сохранить связи</button>
+          </div>
         </section>
         <section class="dev-roadmap-section">
-          <div class="dev-roadmap-section-head"><h4>Связи</h4><span>${roadmap.edges?.length || 0} шт.</span></div>
-          <div class="dev-roadmap-stack">${edgeCards || '<div class="dev-user-card">Пока нет связей. Добавь связь между узлами.</div>'}</div>
-        </section>
-        <section class="dev-roadmap-section">
-          <div class="dev-roadmap-section-head"><h4>JSON preview</h4><span>Проверка структуры перед сохранением</span></div>
+          <div class="dev-roadmap-section-head"><h4>JSON preview</h4><span>Можно править вручную и применить</span></div>
           <textarea class="dev-roadmap-json-editor" rows="18" data-roadmap-json>${escapeHtml(JSON.stringify(roadmap, null, 2))}</textarea>
           <div class="dev-editor-actions">
             <button type="button" class="dev-secondary" data-apply-roadmap-json>Применить JSON</button>
@@ -559,57 +641,8 @@
   };
 
   const collectRoadmapFromEditor = () => {
-    const settings = {
-      isDevModeDefault: Boolean(learningEditor.querySelector('[data-roadmap-setting="isDevModeDefault"]')?.checked),
-      panOnScroll: Boolean(learningEditor.querySelector('[data-roadmap-setting="panOnScroll"]')?.checked),
-      selectionOnDrag: Boolean(learningEditor.querySelector('[data-roadmap-setting="selectionOnDrag"]')?.checked),
-      fitView: Boolean(learningEditor.querySelector('[data-roadmap-setting="fitView"]')?.checked)
-    };
-
-    const nodeIndexes = [...new Set(Array.from(learningEditor.querySelectorAll('[data-node-index]')).map((field) => Number(field.dataset.nodeIndex)).filter((value) => Number.isFinite(value)))].sort((a, b) => a - b);
-    const edgeIndexes = [...new Set(Array.from(learningEditor.querySelectorAll('[data-edge-index]')).map((field) => Number(field.dataset.edgeIndex)).filter((value) => Number.isFinite(value)))].sort((a, b) => a - b);
-
-    const nodes = nodeIndexes.map((index) => ({
-      id: learningEditor.querySelector(`[data-node-field="id"][data-node-index="${index}"]`)?.value?.trim() || `skill-${index + 1}`,
-      type: learningEditor.querySelector(`[data-node-field="type"][data-node-index="${index}"]`)?.value?.trim() || 'skillNode',
-      data: {
-        label: learningEditor.querySelector(`[data-node-field="label"][data-node-index="${index}"]`)?.value?.trim() || 'Новый навык',
-        status: learningEditor.querySelector(`[data-node-field="status"][data-node-index="${index}"]`)?.value?.trim() || 'Draft',
-        color: learningEditor.querySelector(`[data-node-field="color"][data-node-index="${index}"]`)?.value?.trim() || '#2563eb',
-        description: learningEditor.querySelector(`[data-node-field="description"][data-node-index="${index}"]`)?.value?.trim() || '',
-        freeLinks: learningEditor.querySelector(`[data-node-field="freeLinks"][data-node-index="${index}"]`)?.value?.trim() || '',
-        articleLinks: learningEditor.querySelector(`[data-node-field="articleLinks"][data-node-index="${index}"]`)?.value?.trim() || '',
-        plusLinks: learningEditor.querySelector(`[data-node-field="plusLinks"][data-node-index="${index}"]`)?.value?.trim() || '',
-        practiceEnabled: Boolean(learningEditor.querySelector(`[data-node-field="practiceEnabled"][data-node-index="${index}"]`)?.checked),
-        subTasks: [...new Set(Array.from(learningEditor.querySelectorAll(`[data-subtask-index][data-node-index="${index}"]`)).map((field) => Number(field.dataset.subtaskIndex)).filter((value) => Number.isFinite(value)))]
-          .sort((a, b) => a - b)
-          .map((subIndex) => ({
-            id: `subtask-${index + 1}-${subIndex + 1}`,
-            label: learningEditor.querySelector(`[data-subtask-field="label"][data-node-index="${index}"][data-subtask-index="${subIndex}"]`)?.value?.trim() || 'Новый подпункт',
-            description: learningEditor.querySelector(`[data-subtask-field="description"][data-node-index="${index}"][data-subtask-index="${subIndex}"]`)?.value?.trim() || '',
-            freeLinks: learningEditor.querySelector(`[data-subtask-field="freeLinks"][data-node-index="${index}"][data-subtask-index="${subIndex}"]`)?.value?.trim() || '',
-            articleLinks: learningEditor.querySelector(`[data-subtask-field="articleLinks"][data-node-index="${index}"][data-subtask-index="${subIndex}"]`)?.value?.trim() || '',
-            plusLinks: learningEditor.querySelector(`[data-subtask-field="plusLinks"][data-node-index="${index}"][data-subtask-index="${subIndex}"]`)?.value?.trim() || '',
-            practiceEnabled: Boolean(learningEditor.querySelector(`[data-subtask-field="practiceEnabled"][data-node-index="${index}"][data-subtask-index="${subIndex}"]`)?.checked)
-          }))
-      },
-      position: {
-        x: Number(learningEditor.querySelector(`[data-node-field="x"][data-node-index="${index}"]`)?.value || 0),
-        y: Number(learningEditor.querySelector(`[data-node-field="y"][data-node-index="${index}"]`)?.value || 0)
-      }
-    })).filter((node) => node.id && node.data.label);
-
-    const edges = edgeIndexes.map((index) => ({
-      id: learningEditor.querySelector(`[data-edge-field="id"][data-edge-index="${index}"]`)?.value?.trim() || `edge-${index + 1}`,
-      source: learningEditor.querySelector(`[data-edge-field="source"][data-edge-index="${index}"]`)?.value?.trim() || '',
-      target: learningEditor.querySelector(`[data-edge-field="target"][data-edge-index="${index}"]`)?.value?.trim() || '',
-      sourceSide: learningEditor.querySelector(`[data-edge-field="sourceSide"][data-edge-index="${index}"]`)?.value?.trim() || 'right',
-      targetSide: learningEditor.querySelector(`[data-edge-field="targetSide"][data-edge-index="${index}"]`)?.value?.trim() || 'left',
-      type: learningEditor.querySelector(`[data-edge-field="type"][data-edge-index="${index}"]`)?.value?.trim() || 'smoothstep',
-      animated: Boolean(learningEditor.querySelector(`[data-edge-field="animated"][data-edge-index="${index}"]`)?.checked)
-    })).filter((edge) => edge.source && edge.target);
-
-    return { settings, nodes, edges };
+    const current = getCurrentEntry();
+    return normalizeRoadmap(current);
   };
 
   const sidePoint = (node, side) => {
@@ -677,77 +710,268 @@
   };
 
   const bindRoadmapEditor = () => {
+    const liveRoadmap = collectRoadmapFromEditor();
+    const canvas = learningEditor.querySelector('[data-roadmap-canvas-grid]');
+    const lines = learningEditor.querySelector('[data-roadmap-canvas-lines]');
+
+    const getCanvasNodeElement = (nodeId) => learningEditor.querySelector(`[data-canvas-node-id="${nodeId}"]`);
+    const getCanvasNodeData = (nodeId) => liveRoadmap.nodes.find((node) => node.id === nodeId);
+
+    const sidePointFromElement = (element, side) => {
+      const x = Number.parseFloat(element.style.left || '0');
+      const y = Number.parseFloat(element.style.top || '0');
+      const width = element.offsetWidth || 196;
+      const height = element.offsetHeight || 74;
+      if (side === 'top') return { x: x + width / 2, y };
+      if (side === 'bottom') return { x: x + width / 2, y: y + height };
+      if (side === 'left') return { x, y: y + height / 2 };
+      return { x: x + width, y: y + height / 2 };
+    };
+
+    const paintEdges = () => {
+      if (!lines) return;
+      const defs = `
+        <defs>
+          <marker id="dev-roadmap-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#1f6fff"></path>
+          </marker>
+        </defs>
+      `;
+      const paths = liveRoadmap.edges.map((edge) => {
+        const sourceEl = getCanvasNodeElement(edge.source);
+        const targetEl = getCanvasNodeElement(edge.target);
+        if (!sourceEl || !targetEl) return '';
+        const start = sidePointFromElement(sourceEl, edge.sourceSide || 'right');
+        const end = sidePointFromElement(targetEl, edge.targetSide || 'left');
+        return `<path class="${edge.animated ? 'is-dashed' : ''}" marker-end="url(#dev-roadmap-arrow)" d="${edgePath(start, end, edge.sourceSide || 'right', edge.targetSide || 'left')}" />`;
+      }).join('');
+      lines.innerHTML = defs + paths;
+    };
+
+    learningEditor.querySelectorAll('[data-select-roadmap-node]').forEach((button) => {
+      button.addEventListener('click', () => {
+        state.selectedRoadmapNodeId = button.dataset.selectRoadmapNode;
+        renderLearningEditor();
+      });
+    });
+
+    learningEditor.querySelectorAll('[data-connect-node]').forEach((button) => {
+      button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const nodeId = button.dataset.connectNode;
+        const side = button.dataset.connectSide;
+        if (!state.pendingConnection) {
+          state.pendingConnection = { nodeId, side };
+          renderLearningEditor();
+          return;
+        }
+        const pending = state.pendingConnection;
+        state.pendingConnection = null;
+        if (pending.nodeId === nodeId && pending.side === side) {
+          renderLearningEditor();
+          return;
+        }
+        updateCurrentEntry((entry) => {
+          entry.roadmap = normalizeRoadmap(entry);
+          entry.roadmap.edges.push({
+            id: `edge-${Date.now()}`,
+            source: pending.nodeId,
+            target: nodeId,
+            sourceSide: pending.side,
+            targetSide: side,
+            type: 'smoothstep',
+            animated: true
+          });
+        });
+      });
+    });
+
+    learningEditor.querySelectorAll('[data-canvas-node-id]').forEach((nodeElement) => {
+      nodeElement.addEventListener('pointerdown', (event) => {
+        if (event.target.closest('[data-connect-node]')) return;
+        const nodeId = nodeElement.dataset.canvasNodeId;
+        const node = getCanvasNodeData(nodeId);
+        if (!node || !canvas) return;
+        event.preventDefault();
+        const startX = event.clientX;
+        const startY = event.clientY;
+        const originX = Number(node.position?.x || 0);
+        const originY = Number(node.position?.y || 0);
+        nodeElement.setPointerCapture?.(event.pointerId);
+
+        const move = (moveEvent) => {
+          const dx = moveEvent.clientX - startX;
+          const dy = moveEvent.clientY - startY;
+          const nextX = Math.max(0, Math.round((originX + dx) / 20) * 20);
+          const nextY = Math.max(0, Math.round((originY + dy) / 20) * 20);
+          node.position.x = nextX;
+          node.position.y = nextY;
+          nodeElement.style.left = `${nextX}px`;
+          nodeElement.style.top = `${nextY}px`;
+          paintEdges();
+        };
+
+        const up = () => {
+          document.removeEventListener('pointermove', move);
+          document.removeEventListener('pointerup', up);
+          updateCurrentEntry((entry) => {
+            entry.roadmap = normalizeRoadmap(entry);
+            const target = entry.roadmap.nodes.find((item) => item.id === nodeId);
+            if (!target) return;
+            target.position.x = node.position.x;
+            target.position.y = node.position.y;
+          });
+        };
+
+        document.addEventListener('pointermove', move);
+        document.addEventListener('pointerup', up, { once: true });
+      });
+    });
+
     learningEditor.querySelector('[data-add-roadmap-node]')?.addEventListener('click', () => {
-      const store = getLearningStore();
-      const current = ensureProfessionData(state.selectedEntry);
-      const roadmap = collectRoadmapFromEditor();
-      roadmap.nodes.push(createNodeDraft(roadmap.nodes.length));
-      store[state.selectedEntry] = { ...current, roadmap };
-      write(K.learningByItem, store);
-      renderLearningEditor();
+      updateCurrentEntry((entry) => {
+        entry.roadmap = normalizeRoadmap(entry);
+        const node = createNodeDraft(entry.roadmap.nodes.length);
+        entry.roadmap.nodes.push(node);
+        state.selectedRoadmapNodeId = node.id;
+      });
+    });
+
+    learningEditor.querySelector('[data-roadmap-center]')?.addEventListener('click', () => {
+      updateCurrentEntry((entry) => {
+        entry.roadmap = normalizeRoadmap(entry);
+        entry.roadmap.nodes.forEach((node, index) => {
+          node.position.x = 80 + (index % 4) * 260;
+          node.position.y = 80 + Math.floor(index / 4) * 180;
+        });
+      });
     });
 
     learningEditor.querySelector('[data-add-roadmap-edge]')?.addEventListener('click', () => {
-      const store = getLearningStore();
-      const current = ensureProfessionData(state.selectedEntry);
-      const roadmap = collectRoadmapFromEditor();
-      roadmap.edges.push(createEdgeDraft(roadmap.edges.length));
-      store[state.selectedEntry] = { ...current, roadmap };
-      write(K.learningByItem, store);
-      renderLearningEditor();
+      updateCurrentEntry((entry) => {
+        entry.roadmap = normalizeRoadmap(entry);
+        const nodes = entry.roadmap.nodes;
+        if (nodes.length < 2) return;
+        const source = state.selectedRoadmapNodeId || nodes[0].id;
+        const target = nodes.find((node) => node.id !== source)?.id || nodes[0].id;
+        entry.roadmap.edges.push({
+          ...createEdgeDraft(entry.roadmap.edges.length),
+          source,
+          target,
+          sourceSide: 'right',
+          targetSide: 'left'
+        });
+      });
     });
 
-    learningEditor.querySelectorAll('[data-remove-roadmap-node]').forEach((button) => {
+    learningEditor.querySelector('[data-save-selected-node]')?.addEventListener('click', () => {
+      updateCurrentEntry((entry) => {
+        entry.roadmap = normalizeRoadmap(entry);
+        const node = entry.roadmap.nodes.find((item) => item.id === state.selectedRoadmapNodeId);
+        if (!node) return;
+        const nextId = learningEditor.querySelector('[data-selected-node-field="id"]')?.value.trim() || node.id;
+        const previousId = node.id;
+        node.id = nextId;
+        node.type = learningEditor.querySelector('[data-selected-node-field="type"]')?.value.trim() || 'skillNode';
+        node.data.label = learningEditor.querySelector('[data-selected-node-field="label"]')?.value.trim() || 'Новый навык';
+        node.data.status = learningEditor.querySelector('[data-selected-node-field="status"]')?.value.trim() || 'Draft';
+        node.data.color = learningEditor.querySelector('[data-selected-node-field="color"]')?.value.trim() || '#2563eb';
+        node.data.description = learningEditor.querySelector('[data-selected-node-field="description"]')?.value.trim() || '';
+        node.data.freeLinks = learningEditor.querySelector('[data-selected-node-field="freeLinks"]')?.value.trim() || '';
+        node.data.articleLinks = learningEditor.querySelector('[data-selected-node-field="articleLinks"]')?.value.trim() || '';
+        node.data.plusLinks = learningEditor.querySelector('[data-selected-node-field="plusLinks"]')?.value.trim() || '';
+        node.data.practiceEnabled = (learningEditor.querySelector('[data-selected-node-field="practiceEnabled"]')?.value || 'false') === 'true';
+        node.position.x = Number(learningEditor.querySelector('[data-selected-node-field="x"]')?.value || 0);
+        node.position.y = Number(learningEditor.querySelector('[data-selected-node-field="y"]')?.value || 0);
+        if (previousId !== nextId) {
+          entry.roadmap.edges.forEach((edge) => {
+            if (edge.source === previousId) edge.source = nextId;
+            if (edge.target === previousId) edge.target = nextId;
+          });
+          state.selectedRoadmapNodeId = nextId;
+        }
+      });
+    });
+
+    learningEditor.querySelector('[data-delete-selected-node]')?.addEventListener('click', () => {
+      updateCurrentEntry((entry) => {
+        entry.roadmap = normalizeRoadmap(entry);
+        entry.roadmap.nodes = entry.roadmap.nodes.filter((node) => node.id !== state.selectedRoadmapNodeId);
+        entry.roadmap.edges = entry.roadmap.edges.filter((edge) => edge.source !== state.selectedRoadmapNodeId && edge.target !== state.selectedRoadmapNodeId);
+        state.selectedRoadmapNodeId = entry.roadmap.nodes[0]?.id || null;
+      });
+    });
+
+    learningEditor.querySelectorAll('[data-move-node]').forEach((button) => {
       button.addEventListener('click', () => {
-        const index = Number(button.dataset.removeRoadmapNode);
-        const store = getLearningStore();
-        const current = ensureProfessionData(state.selectedEntry);
-        const roadmap = collectRoadmapFromEditor();
-        roadmap.nodes.splice(index, 1);
-        const validIds = new Set(roadmap.nodes.map((node) => node.id));
-        roadmap.edges = roadmap.edges.filter((edge) => validIds.has(edge.source) && validIds.has(edge.target));
-        store[state.selectedEntry] = { ...current, roadmap };
-        write(K.learningByItem, store);
-        renderLearningEditor();
+        const move = button.dataset.moveNode;
+        const step = 40;
+        if (move === 'up') moveNodeByStep(state.selectedRoadmapNodeId, 0, -step);
+        if (move === 'down') moveNodeByStep(state.selectedRoadmapNodeId, 0, step);
+        if (move === 'left') moveNodeByStep(state.selectedRoadmapNodeId, -step, 0);
+        if (move === 'right') moveNodeByStep(state.selectedRoadmapNodeId, step, 0);
+      });
+    });
+
+    learningEditor.querySelector('[data-add-subtask]')?.addEventListener('click', () => {
+      updateCurrentEntry((entry) => {
+        entry.roadmap = normalizeRoadmap(entry);
+        const node = entry.roadmap.nodes.find((item) => item.id === state.selectedRoadmapNodeId);
+        if (!node) return;
+        node.data.subTasks.push(normalizeSubTask({}, node.data.subTasks.length));
+      });
+    });
+
+    learningEditor.querySelectorAll('[data-remove-subtask]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const index = Number(button.dataset.removeSubtask);
+        updateCurrentEntry((entry) => {
+          entry.roadmap = normalizeRoadmap(entry);
+          const node = entry.roadmap.nodes.find((item) => item.id === state.selectedRoadmapNodeId);
+          if (!node) return;
+          node.data.subTasks.splice(index, 1);
+        });
+      });
+    });
+
+    learningEditor.querySelector('[data-save-subtasks]')?.addEventListener('click', () => {
+      updateCurrentEntry((entry) => {
+        entry.roadmap = normalizeRoadmap(entry);
+        const node = entry.roadmap.nodes.find((item) => item.id === state.selectedRoadmapNodeId);
+        if (!node) return;
+        node.data.subTasks = (node.data.subTasks || []).map((subTask, index) => ({
+          ...subTask,
+          label: learningEditor.querySelector(`[data-selected-subtask-field="label"][data-selected-subtask-index="${index}"]`)?.value.trim() || 'Новый подпункт',
+          description: learningEditor.querySelector(`[data-selected-subtask-field="description"][data-selected-subtask-index="${index}"]`)?.value.trim() || '',
+          freeLinks: learningEditor.querySelector(`[data-selected-subtask-field="freeLinks"][data-selected-subtask-index="${index}"]`)?.value.trim() || '',
+          articleLinks: learningEditor.querySelector(`[data-selected-subtask-field="articleLinks"][data-selected-subtask-index="${index}"]`)?.value.trim() || '',
+          plusLinks: learningEditor.querySelector(`[data-selected-subtask-field="plusLinks"][data-selected-subtask-index="${index}"]`)?.value.trim() || '',
+          practiceEnabled: (learningEditor.querySelector(`[data-selected-subtask-field="practiceEnabled"][data-selected-subtask-index="${index}"]`)?.value || 'false') === 'true'
+        }));
       });
     });
 
     learningEditor.querySelectorAll('[data-remove-roadmap-edge]').forEach((button) => {
       button.addEventListener('click', () => {
         const index = Number(button.dataset.removeRoadmapEdge);
-        const store = getLearningStore();
-        const current = ensureProfessionData(state.selectedEntry);
-        const roadmap = collectRoadmapFromEditor();
-        roadmap.edges.splice(index, 1);
-        store[state.selectedEntry] = { ...current, roadmap };
-        write(K.learningByItem, store);
-        renderLearningEditor();
+        updateCurrentEntry((entry) => {
+          entry.roadmap = normalizeRoadmap(entry);
+          entry.roadmap.edges.splice(index, 1);
+        });
       });
     });
 
-    learningEditor.querySelectorAll('[data-add-subtask]').forEach((button) => {
-      button.addEventListener('click', () => {
-        const nodeIndex = Number(button.dataset.addSubtask);
-        const store = getLearningStore();
-        const current = ensureProfessionData(state.selectedEntry);
-        const roadmap = collectRoadmapFromEditor();
-        roadmap.nodes[nodeIndex].data.subTasks.push(normalizeSubTask({}, roadmap.nodes[nodeIndex].data.subTasks.length));
-        store[state.selectedEntry] = { ...current, roadmap };
-        write(K.learningByItem, store);
-        renderLearningEditor();
-      });
-    });
-
-    learningEditor.querySelectorAll('[data-remove-subtask]').forEach((button) => {
-      button.addEventListener('click', () => {
-        const [nodeIndex, subtaskIndex] = String(button.dataset.removeSubtask).split(':').map(Number);
-        const store = getLearningStore();
-        const current = ensureProfessionData(state.selectedEntry);
-        const roadmap = collectRoadmapFromEditor();
-        roadmap.nodes[nodeIndex].data.subTasks.splice(subtaskIndex, 1);
-        store[state.selectedEntry] = { ...current, roadmap };
-        write(K.learningByItem, store);
-        renderLearningEditor();
+    learningEditor.querySelector('[data-save-roadmap-edges]')?.addEventListener('click', () => {
+      updateCurrentEntry((entry) => {
+        entry.roadmap = normalizeRoadmap(entry);
+        entry.roadmap.edges = entry.roadmap.edges.map((edge, index) => ({
+          ...edge,
+          id: edge.id || `edge-${index + 1}`,
+          source: learningEditor.querySelector(`[data-edge-field="source"][data-edge-index="${index}"]`)?.value.trim() || '',
+          target: learningEditor.querySelector(`[data-edge-field="target"][data-edge-index="${index}"]`)?.value.trim() || '',
+          sourceSide: learningEditor.querySelector(`[data-edge-field="sourceSide"][data-edge-index="${index}"]`)?.value || 'right',
+          targetSide: learningEditor.querySelector(`[data-edge-field="targetSide"][data-edge-index="${index}"]`)?.value || 'left'
+        })).filter((edge) => edge.source && edge.target);
       });
     });
 
@@ -757,18 +981,47 @@
       try {
         field.classList.remove('has-error');
         const parsed = JSON.parse(field.value);
-        const store = getLearningStore();
-        const current = ensureProfessionData(state.selectedEntry);
-        store[state.selectedEntry] = { ...current, roadmap: normalizeRoadmap({ roadmap: parsed }) };
-        write(K.learningByItem, store);
-        renderLearningEditor();
+        updateCurrentEntry((entry) => {
+          entry.roadmap = normalizeRoadmap({ roadmap: parsed });
+          state.selectedRoadmapNodeId = entry.roadmap.nodes[0]?.id || null;
+        });
       } catch {
         field.classList.add('has-error');
       }
     });
+
+    paintEdges();
   };
 
+  const getCurrentEntry = () => {
+    if (!state.selectedEntry) return null;
+    return ensureProfessionData(state.selectedEntry);
+  };
+
+  const updateCurrentEntry = (updater) => {
+    if (!state.selectedEntry) return;
+    const store = getLearningStore();
+    const current = JSON.parse(JSON.stringify(store[state.selectedEntry] || ensureProfessionData(state.selectedEntry)));
+    updater(current);
+    store[state.selectedEntry] = current;
+    write(K.learningByItem, store);
+    renderLearningEditor();
+  };
+
+  const moveNodeByStep = (nodeId, dx, dy) => {
+    updateCurrentEntry((entry) => {
+      const node = entry.roadmap?.nodes?.find((item) => item.id === nodeId);
+      if (!node) return;
+      node.position.x = Math.max(0, Number(node.position?.x || 0) + dx);
+      node.position.y = Math.max(0, Number(node.position?.y || 0) + dy);
+    });
+  };
+
+  const escapeAttr = (value) => escapeHtml(value).replaceAll('\n', '&#10;');
+
   const renderLearningEditor = () => {
+    document.body.classList.toggle('dev-roadmap-mode', state.learningMode === 'edit' && state.selectedSection === 'roadmap' && !!state.selectedEntry);
+
     if (state.learningMode === 'list' || !state.selectedEntry) {
       learningEditor.innerHTML = `
         <div class="dev-empty-state">
@@ -795,6 +1048,7 @@
       learningEditor.querySelector('[data-learning-back]')?.addEventListener('click', () => {
         state.learningMode = 'list';
         state.selectedEntry = null;
+        state.pendingConnection = null;
         renderLearningEditor();
       });
       return;
@@ -830,7 +1084,27 @@
       `
     }[state.selectedSection];
 
-    learningEditor.innerHTML = `
+    learningEditor.innerHTML = state.selectedSection === 'roadmap' ? `
+      <div class="dev-editor-shell is-roadmap-mode">
+        <div class="dev-roadmap-pagebar">
+          <div class="dev-roadmap-pagebar-left">
+            <button type="button" class="dev-secondary" data-learning-back>Назад</button>
+            <div class="dev-chip">${escapeHtml(state.selectedEntry)}</div>
+          </div>
+          <div class="dev-roadmap-pagebar-tabs">
+            ${Object.entries(titles).map(([key, label]) => `
+              <button type="button" class="dev-subtab ${state.selectedSection === key ? 'is-active' : ''}" data-learning-section="${key}">${label}</button>
+            `).join('')}
+          </div>
+          <div class="dev-roadmap-pagebar-right">
+            <button type="button" class="dev-primary" data-learning-save>Сохранить изменения</button>
+          </div>
+        </div>
+        <div class="dev-editor-body dev-editor-body-roadmap">
+          ${body}
+        </div>
+      </div>
+    ` : `
       <div class="dev-editor-shell">
         <div class="dev-editor-head">
           <button type="button" class="dev-secondary" data-learning-back>Назад</button>
@@ -854,12 +1128,14 @@
     learningEditor.querySelector('[data-learning-back]')?.addEventListener('click', () => {
       state.learningMode = 'list';
       state.selectedEntry = null;
+      state.pendingConnection = null;
       renderLearningEditor();
     });
 
     learningEditor.querySelectorAll('[data-learning-section]').forEach((button) => {
       button.addEventListener('click', () => {
         state.selectedSection = button.dataset.learningSection;
+        if (state.selectedSection !== 'roadmap') state.pendingConnection = null;
         renderLearningEditor();
       });
     });
@@ -869,7 +1145,7 @@
     learningEditor.querySelector('[data-learning-save]')?.addEventListener('click', () => {
       const store = getLearningStore();
       const current = { ...(store[state.selectedEntry] || ensureProfessionData(state.selectedEntry)) };
-      current.roadmap = state.selectedSection === 'roadmap' ? collectRoadmapFromEditor() : normalizeRoadmap(current);
+      current.roadmap = normalizeRoadmap(current);
       current.practice = learningEditor.querySelector('[data-learning-practice]')?.value ?? current.practice;
       current.grade = learningEditor.querySelector('[data-learning-grade]')?.value ?? current.grade;
       current.interview = learningEditor.querySelector('[data-learning-interview]')?.value ?? current.interview;
@@ -879,6 +1155,10 @@
   };
 
   const renderLearning = () => {
+    const shell = document.querySelector('.dev-learning-shell');
+    const fullRoadmap = state.learningMode === 'edit' && state.selectedSection === 'roadmap' && !!state.selectedEntry;
+    if (learningDirectory) learningDirectory.hidden = fullRoadmap;
+    shell?.classList.toggle('is-roadmap-editor', fullRoadmap);
     renderLearningDirectory();
     renderLearningEditor();
   };
