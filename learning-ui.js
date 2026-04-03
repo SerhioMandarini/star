@@ -189,10 +189,75 @@ document.addEventListener('DOMContentLoaded', () => {
     return params.get('item') || document.querySelector('[data-learning-title]')?.textContent?.trim() || '';
   };
 
+  const fallbackLearningEntry = (item) => ({
+    roadmap: {
+      settings: {
+        isDevModeDefault: false,
+        panOnScroll: true,
+        selectionOnDrag: false,
+        fitView: true
+      },
+      nodes: [
+        {
+          id: 'intro',
+          type: 'skillNode',
+          data: {
+            label: item || 'Roadmap',
+            description: 'Стартовая дорожная карта загружается из встроенного fallback, если на устройстве ещё нет сохранённых данных из админ-панели.',
+            color: '#b6eb24',
+            status: 'Main',
+            freeLinks: 'Roadstar demo',
+            articleLinks: 'Скоро будет',
+            plusLinks: 'Скоро будет',
+            practiceEnabled: false,
+            subTasks: []
+          },
+          position: { x: 160, y: 120 }
+        },
+        {
+          id: 'base',
+          type: 'skillNode',
+          data: {
+            label: 'База',
+            description: 'Освой фундаментальные темы по выбранной профессии.',
+            color: '#ee463a',
+            status: 'Core',
+            freeLinks: 'Полезные материалы',
+            articleLinks: 'Скоро будет',
+            plusLinks: 'Скоро будет',
+            practiceEnabled: false,
+            subTasks: []
+          },
+          position: { x: 460, y: 260 }
+        },
+        {
+          id: 'next',
+          type: 'skillNode',
+          data: {
+            label: 'Следующий шаг',
+            description: 'Здесь появится детализированное наполнение из админ-панели или backend-источника.',
+            color: '#0f766e',
+            status: 'Next',
+            freeLinks: 'Скоро будет',
+            articleLinks: 'Скоро будет',
+            plusLinks: 'Скоро будет',
+            practiceEnabled: false,
+            subTasks: []
+          },
+          position: { x: 780, y: 120 }
+        }
+      ],
+      edges: [
+        { id: 'fallback-1', source: 'intro', target: 'base', sourceSide: 'right', targetSide: 'left', type: 'smoothstep', animated: true },
+        { id: 'fallback-2', source: 'base', target: 'next', sourceSide: 'right', targetSide: 'left', type: 'smoothstep', animated: true }
+      ]
+    }
+  });
+
   const getLearningEntry = () => {
     const item = getCurrentLearningItem();
     const store = readJson('roadstar-learning-by-item', {});
-    return store[item] || null;
+    return store[item] || fallbackLearningEntry(item);
   };
 
   const formatMultiLine = (value) => {

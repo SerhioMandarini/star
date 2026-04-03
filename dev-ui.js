@@ -442,8 +442,10 @@
     }
 
     const selectedNode = roadmap.nodes.find((node) => node.id === state.selectedRoadmapNodeId) || roadmap.nodes[0] || null;
-    const previewWidth = Math.max(...roadmap.nodes.map((node) => Number(node.position?.x || 0) + 260), 1120);
-    const previewHeight = Math.max(...roadmap.nodes.map((node) => Number(node.position?.y || 0) + 220), 640);
+    const viewportWidth = Math.max(window.innerWidth - 8, 1280);
+    const viewportHeight = Math.max(window.innerHeight - 78, 720);
+    const previewWidth = Math.max(...roadmap.nodes.map((node) => Number(node.position?.x || 0) + 260), viewportWidth);
+    const previewHeight = Math.max(...roadmap.nodes.map((node) => Number(node.position?.y || 0) + 220), viewportHeight);
     const byId = Object.fromEntries(roadmap.nodes.map((node) => [node.id, node]));
     const previewLines = (roadmap.edges || []).map((edge) => {
       const source = byId[edge.source];
@@ -550,8 +552,27 @@
             `).join('')}
           </div>
         </div>
-        <div class="dev-roadmap-layout">
-          <aside class="dev-roadmap-inspector">
+        <div class="dev-roadmap-workspace">
+          <section class="dev-roadmap-canvas-card">
+            <div class="dev-roadmap-canvas-scroll">
+              <div class="dev-roadmap-canvas-grid" data-roadmap-canvas-grid style="width:${previewWidth}px; height:${previewHeight}px;">
+                <div class="dev-roadmap-learning-bounds" data-preview-theme="${escapeAttr(state.roadmapTheme)}">
+                  <span>Граница видимой области обучения</span>
+                </div>
+                <svg class="dev-roadmap-canvas-lines" data-roadmap-canvas-lines width="${previewWidth}" height="${previewHeight}" viewBox="0 0 ${previewWidth} ${previewHeight}">
+                  <defs>
+                    <marker id="dev-roadmap-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1f6fff"></path>
+                    </marker>
+                  </defs>
+                  ${previewLines}
+                </svg>
+                ${previewNodes}
+              </div>
+            </div>
+          </section>
+          <aside class="dev-roadmap-inspector-overlay">
+            <div class="dev-roadmap-inspector">
             ${selectedNode ? `
               <div class="dev-roadmap-canvas-head">
                 <h4>Инспектор узла</h4>
@@ -621,29 +642,8 @@
                 <button type="button" class="dev-secondary" data-apply-roadmap-json>Применить JSON</button>
               </div>
             </section>
+            </div>
           </aside>
-          <section class="dev-roadmap-canvas-card">
-            <div class="dev-roadmap-canvas-head">
-              <h4>Холст</h4>
-              <p>Таскай узлы мышкой. Для связи нажми точку на одном навыке и затем точку на другом.</p>
-            </div>
-            <div class="dev-roadmap-canvas-scroll">
-              <div class="dev-roadmap-canvas-grid" data-roadmap-canvas-grid style="width:${previewWidth}px; height:${previewHeight}px;">
-                <div class="dev-roadmap-learning-bounds" data-preview-theme="${escapeAttr(state.roadmapTheme)}">
-                  <span>Граница видимой области обучения</span>
-                </div>
-                <svg class="dev-roadmap-canvas-lines" data-roadmap-canvas-lines width="${previewWidth}" height="${previewHeight}" viewBox="0 0 ${previewWidth} ${previewHeight}">
-                  <defs>
-                    <marker id="dev-roadmap-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-                      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1f6fff"></path>
-                    </marker>
-                  </defs>
-                  ${previewLines}
-                </svg>
-                ${previewNodes}
-              </div>
-            </div>
-          </section>
         </div>
       </div>
     `;
@@ -1173,7 +1173,10 @@
   const renderLearning = () => {
     const shell = document.querySelector('.dev-learning-shell');
     const fullRoadmap = state.learningMode === 'edit' && state.selectedSection === 'roadmap' && !!state.selectedEntry;
-    if (learningDirectory) learningDirectory.hidden = fullRoadmap;
+    if (learningDirectory) {
+      learningDirectory.hidden = fullRoadmap;
+      learningDirectory.style.display = fullRoadmap ? 'none' : '';
+    }
     shell?.classList.toggle('is-roadmap-editor', fullRoadmap);
     renderLearningDirectory();
     renderLearningEditor();
