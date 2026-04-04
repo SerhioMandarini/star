@@ -198,22 +198,26 @@
 
   const parseLines = (value) => String(value || '').split('\n').map((item) => item.trim()).filter(Boolean);
 
-  const createNodeDraft = (index = 0) => ({
-    id: `skill-${Date.now()}-${index}`,
-    type: 'skillNode',
-    data: {
-      label: 'Новый навык',
-      description: '',
-      color: '#2563eb',
-      status: 'Draft',
-      freeLinks: '',
-      articleLinks: '',
-      plusLinks: '',
-      practiceEnabled: false,
-      subTasks: []
-    },
-    position: { x: 120 + index * 40, y: 120 + index * 40 }
-  });
+  const createNodeDraft = (index = 0) => {
+    const bx = Math.round((160 + index * 48) / ROADMAP_GRID) * ROADMAP_GRID;
+    const by = Math.round((160 + index * 48) / ROADMAP_GRID) * ROADMAP_GRID;
+    return {
+      id: `skill-${Date.now()}-${index}`,
+      type: 'skillNode',
+      data: {
+        label: 'Новый навык',
+        description: '',
+        color: '#2563eb',
+        status: 'Draft',
+        freeLinks: '',
+        articleLinks: '',
+        plusLinks: '',
+        practiceEnabled: false,
+        subTasks: []
+      },
+      position: { x: bx, y: by }
+    };
+  };
 
   const createEdgeDraft = (index = 0) => ({
     id: `edge-${Date.now()}-${index}`,
@@ -230,6 +234,8 @@
   const learningDirectory = document.querySelector('[data-learning-directory]');
   const learningEditor = document.querySelector('[data-learning-editor]');
 
+  const ROADMAP_GRID = 20;
+
   const state = {
     currentTab: tabs.find((tab) => tab.classList.contains('is-active'))?.dataset.adminTab || 'home',
     learningMode: 'list',
@@ -237,7 +243,9 @@
     selectedSection: 'roadmap',
     selectedRoadmapNodeId: null,
     pendingConnection: null,
-    roadmapTheme: 'white'
+    roadmapTheme: 'white',
+    roadmapCamera: { x: 80, y: 64, zoom: 0.85 },
+    roadmapFitOnce: null
   };
 
   const showPanel = (name) => {
@@ -250,7 +258,7 @@
     panels.forEach((panel) => {
       const active = panel.dataset.adminPanel === name;
       panel.hidden = !active;
-      panel.style.display = active ? 'grid' : 'none';
+      panel.style.display = active ? '' : 'none';
     });
   };
 
@@ -435,6 +443,20 @@
     });
   };
 
+  const getRoadmapWorldSize = (roadmap) => {
+    const nodes = roadmap.nodes || [];
+    const minW = 3600;
+    const minH = 2600;
+    if (!nodes.length) return { w: minW, h: minH };
+    let maxR = 400;
+    let maxB = 400;
+    for (const node of nodes) {
+      maxR = Math.max(maxR, Number(node.position?.x || 0) + 320);
+      maxB = Math.max(maxB, Number(node.position?.y || 0) + 280);
+    }
+    return { w: Math.max(minW, maxR + 520), h: Math.max(minH, maxB + 520) };
+  };
+
   const renderRoadmapEditor = (data) => {
     const roadmap = data.roadmap || createDefaultRoadmap();
     if (!state.selectedRoadmapNodeId || !roadmap.nodes.some((node) => node.id === state.selectedRoadmapNodeId)) {
@@ -442,10 +464,7 @@
     }
 
     const selectedNode = roadmap.nodes.find((node) => node.id === state.selectedRoadmapNodeId) || roadmap.nodes[0] || null;
-    const viewportWidth = Math.max(window.innerWidth - 8, 1280);
-    const viewportHeight = Math.max(window.innerHeight - 78, 720);
-    const previewWidth = Math.max(...roadmap.nodes.map((node) => Number(node.position?.x || 0) + 260), viewportWidth);
-    const previewHeight = Math.max(...roadmap.nodes.map((node) => Number(node.position?.y || 0) + 220), viewportHeight);
+    const { w: worldW, h: worldH } = getRoadmapWorldSize(roadmap);
     const byId = Object.fromEntries(roadmap.nodes.map((node) => [node.id, node]));
     const previewLines = (roadmap.edges || []).map((edge) => {
       const source = byId[edge.source];
@@ -455,6 +474,11 @@
       const end = sidePoint(target, edge.targetSide || 'left');
       return `<path class="${edge.animated ? 'is-dashed' : ''}" marker-end="url(#dev-roadmap-arrow)" d="${edgePath(start, end, edge.sourceSide || 'right', edge.targetSide || 'left')}" />`;
     }).join('');
+
+    const swatches = ['#2563eb', '#7c3aed', '#0f766e', '#dc2626', '#ea580c', '#d97706', '#64748b', '#111827', '#ec4899', '#14b8a6'];
+    const swatchButtons = swatches.map((c) => `
+      <button type="button" class="dev-roadmap-swatch" data-swatch-color="${escapeAttr(c)}" style="--rs-swatch:${escapeAttr(c)}" title="${escapeAttr(c)}" aria-label="Палитра ${escapeAttr(c)}"></button>
+    `).join('');
 
     const previewNodes = roadmap.nodes.map((node) => `
       <article
@@ -532,51 +556,40 @@
     `).join('');
 
     return `
-      <div class="dev-roadmap-studio">
-        <div class="dev-roadmap-toolbar">
-          <div class="dev-chip">Roadmap Studio</div>
-          <div class="dev-editor-actions">
-            <button type="button" class="dev-secondary" data-add-roadmap-node>Добавить узел</button>
-            <button type="button" class="dev-secondary" data-add-roadmap-edge>Добавить связь</button>
-            <button type="button" class="dev-secondary" data-roadmap-center>Собрать компактно</button>
-          </div>
-        </div>
-        <div class="dev-roadmap-meta">
-          <div class="dev-chip">Узлов: ${roadmap.nodes.length}</div>
-          <div class="dev-chip">Связей: ${roadmap.edges.length}</div>
-          <div class="dev-chip">Сетка: 40px</div>
-          <div class="dev-chip">${state.pendingConnection ? `Стрелка: ${escapeHtml(state.pendingConnection.nodeId)} / ${escapeHtml(state.pendingConnection.side)}` : 'Соединение: выбери первую точку'}</div>
-          <div class="dev-roadmap-theme-switch">
-            ${['white', 'black', 'blue', 'beige'].map((theme) => `
-              <button type="button" class="dev-secondary ${state.roadmapTheme === theme ? 'is-active' : ''}" data-roadmap-theme="${theme}">${theme}</button>
-            `).join('')}
-          </div>
-        </div>
-        <div class="dev-roadmap-workspace">
-          <section class="dev-roadmap-canvas-card">
-            <div class="dev-roadmap-canvas-scroll">
-              <div class="dev-roadmap-canvas-grid" data-roadmap-canvas-grid style="width:${previewWidth}px; height:${previewHeight}px;">
-                <div class="dev-roadmap-learning-bounds" data-preview-theme="${escapeAttr(state.roadmapTheme)}">
-                  <span>Граница видимой области обучения</span>
-                </div>
-                <svg class="dev-roadmap-canvas-lines" data-roadmap-canvas-lines width="${previewWidth}" height="${previewHeight}" viewBox="0 0 ${previewWidth} ${previewHeight}">
-                  <defs>
-                    <marker id="dev-roadmap-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-                      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1f6fff"></path>
-                    </marker>
-                  </defs>
-                  ${previewLines}
-                </svg>
-                ${previewNodes}
-              </div>
+      <div class="dev-roadmap-studio dev-roadmap-studio-v2">
+        <div class="dev-roadmap-split">
+          <aside class="dev-roadmap-sidebar" aria-label="Свойства и связи">
+            <div class="dev-roadmap-sidebar-head">
+              <h3 class="dev-roadmap-sidebar-title">Дорожная карта</h3>
+              <p class="dev-roadmap-sidebar-hint">Холст: <kbd>Alt</kbd>+левая кнопка или средняя кнопка — сдвиг вида · колёсико — панорама · <kbd>Ctrl</kbd>+колесо — масштаб · двойной клик по сетке — новый блок · синие точки на сторонах блока — связь между блоками.</p>
             </div>
-          </section>
-          <aside class="dev-roadmap-inspector-overlay">
-            <div class="dev-roadmap-inspector">
+            <section class="dev-roadmap-sidebar-tools">
+              <div class="dev-roadmap-section-head"><h4>Инструменты</h4></div>
+              <div class="dev-roadmap-tools-row">
+                <button type="button" class="dev-primary" data-add-roadmap-node>+ Блок</button>
+                <button type="button" class="dev-secondary" data-add-roadmap-edge>+ Связь</button>
+                <button type="button" class="dev-secondary" data-roadmap-center>Сетка</button>
+              </div>
+              <div class="dev-roadmap-stats-row">
+                <span class="dev-chip dev-chip-compact">Узлов: ${roadmap.nodes.length}</span>
+                <span class="dev-chip dev-chip-compact">Связей: ${roadmap.edges.length}</span>
+                <span class="dev-chip dev-chip-compact">Шаг сетки: ${ROADMAP_GRID}px</span>
+              </div>
+              <p class="dev-roadmap-connect-hint">${state.pendingConnection ? `Связь: от «${escapeHtml(state.pendingConnection.side)}» узла <strong>${escapeHtml(state.pendingConnection.nodeId)}</strong> — кликни точку на другом блоке.` : 'Связь: кликни синюю точку на первом блоке, затем на втором.'}</p>
+              <div class="dev-roadmap-theme-block">
+                <span class="dev-roadmap-theme-label">Тема превью в обучении</span>
+                <div class="dev-roadmap-theme-switch">
+                  ${['white', 'black', 'blue', 'beige'].map((theme) => `
+                    <button type="button" class="dev-secondary ${state.roadmapTheme === theme ? 'is-active' : ''}" data-roadmap-theme="${theme}">${theme}</button>
+                  `).join('')}
+                </div>
+              </div>
+            </section>
+            <div class="dev-roadmap-sidebar-scroll">
             ${selectedNode ? `
               <div class="dev-roadmap-canvas-head">
-                <h4>Инспектор узла</h4>
-                <p>Слева инструменты и свойства, справа большой холст. Узлы можно таскать прямо по сетке.</p>
+                <h4>Выбранный блок</h4>
+                <p>Поля содержимого, ссылки и подпункты — здесь; позицию удобнее менять перетаскиванием на холсте.</p>
               </div>
               <div class="dev-roadmap-grid">
                 <label>ID<input type="text" value="${escapeAttr(selectedNode.id || '')}" data-selected-node-field="id"></label>
@@ -587,10 +600,12 @@
                     <option value="Main" ${(selectedNode.data?.status || '') === 'Main' ? 'selected' : ''}>Main</option>
                     <option value="Core" ${(selectedNode.data?.status || '') === 'Core' ? 'selected' : ''}>Core</option>
                     <option value="Branch" ${(selectedNode.data?.status || '') === 'Branch' ? 'selected' : ''}>Branch</option>
+                    <option value="Next" ${(selectedNode.data?.status || '') === 'Next' ? 'selected' : ''}>Next</option>
                     <option value="Draft" ${(selectedNode.data?.status || '') === 'Draft' ? 'selected' : ''}>Draft</option>
                   </select>
                 </label>
                 <label>Цвет<input type="color" value="${escapeAttr(selectedNode.data?.color || '#2563eb')}" data-selected-node-field="color"></label>
+                <div class="dev-roadmap-swatch-row" aria-label="Быстрый выбор цвета">${swatchButtons}</div>
                 <label>Практика
                   <select data-selected-node-field="practiceEnabled">
                     <option value="false" ${!selectedNode.data?.practiceEnabled ? 'selected' : ''}>Нет</option>
@@ -637,13 +652,35 @@
             </section>
             <section class="dev-roadmap-section">
               <div class="dev-roadmap-section-head"><h4>JSON preview</h4><span>Можно править вручную и применить</span></div>
-              <textarea class="dev-roadmap-json-editor" rows="18" data-roadmap-json>${escapeHtml(JSON.stringify(roadmap, null, 2))}</textarea>
+              <textarea class="dev-roadmap-json-editor" rows="12" data-roadmap-json>${escapeHtml(JSON.stringify(roadmap, null, 2))}</textarea>
               <div class="dev-editor-actions">
                 <button type="button" class="dev-secondary" data-apply-roadmap-json>Применить JSON</button>
               </div>
             </section>
             </div>
           </aside>
+          <div class="dev-roadmap-viewport" data-roadmap-viewport tabindex="0" aria-label="Холст дорожной карты">
+            <div class="dev-roadmap-viewport-chrome">
+              <span class="dev-roadmap-zoom-label" data-roadmap-zoom-label>100%</span>
+              <button type="button" class="dev-secondary dev-roadmap-zoom-btn" data-roadmap-zoom-out aria-label="Уменьшить">−</button>
+              <button type="button" class="dev-secondary dev-roadmap-zoom-btn" data-roadmap-zoom-in aria-label="Увеличить">+</button>
+              <button type="button" class="dev-primary dev-roadmap-zoom-fit" data-roadmap-zoom-fit>Подогнать</button>
+            </div>
+            <div class="dev-roadmap-world" data-roadmap-world>
+              <div class="dev-roadmap-canvas-grid" data-roadmap-canvas-grid style="width:${worldW}px;height:${worldH}px;">
+                <div class="dev-roadmap-world-bg" data-roadmap-world-bg aria-hidden="true"></div>
+                <svg class="dev-roadmap-canvas-lines" data-roadmap-canvas-lines width="${worldW}" height="${worldH}" viewBox="0 0 ${worldW} ${worldH}">
+                  <defs>
+                    <marker id="dev-roadmap-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                      <path d="M 0 0 L 10 5 L 0 10 z" fill="#5b9cff"></path>
+                    </marker>
+                  </defs>
+                  ${previewLines}
+                </svg>
+                ${previewNodes}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     `;
@@ -657,7 +694,7 @@
   const sidePoint = (node, side) => {
     const x = Number(node.position?.x || 0);
     const y = Number(node.position?.y || 0);
-    const width = 192;
+    const width = 196;
     const subTasks = Array.isArray(node.data?.subTasks) ? Math.min(node.data.subTasks.length, 4) : 0;
     const height = 58 + (subTasks ? subTasks * 34 + 8 : 0);
     if (side === 'top') return { x: x + width / 2, y };
@@ -722,9 +759,191 @@
     const liveRoadmap = collectRoadmapFromEditor();
     const canvas = learningEditor.querySelector('[data-roadmap-canvas-grid]');
     const lines = learningEditor.querySelector('[data-roadmap-canvas-lines]');
+    const viewport = learningEditor.querySelector('[data-roadmap-viewport]');
+    const world = learningEditor.querySelector('[data-roadmap-world]');
+    const worldBg = learningEditor.querySelector('[data-roadmap-world-bg]');
+    const zoomLabel = learningEditor.querySelector('[data-roadmap-zoom-label]');
 
     const getCanvasNodeElement = (nodeId) => learningEditor.querySelector(`[data-canvas-node-id="${nodeId}"]`);
     const getCanvasNodeData = (nodeId) => liveRoadmap.nodes.find((node) => node.id === nodeId);
+
+    const applyCamera = () => {
+      if (!world) return;
+      const { x, y, zoom } = state.roadmapCamera;
+      world.style.transform = `translate(${x}px, ${y}px) scale(${zoom})`;
+      world.style.transformOrigin = '0 0';
+      if (zoomLabel) zoomLabel.textContent = `${Math.round(zoom * 100)}%`;
+    };
+
+    const fitRoadmapCamera = () => {
+      if (!viewport || !world) return;
+      const roadmap = collectRoadmapFromEditor();
+      const rect = viewport.getBoundingClientRect();
+      const pad = 88;
+      const nw = 208;
+      const nh = 120;
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      for (const n of roadmap.nodes) {
+        const px = Number(n.position?.x || 0);
+        const py = Number(n.position?.y || 0);
+        minX = Math.min(minX, px);
+        minY = Math.min(minY, py);
+        maxX = Math.max(maxX, px + nw);
+        maxY = Math.max(maxY, py + nh);
+      }
+      if (!roadmap.nodes.length || !Number.isFinite(minX)) {
+        state.roadmapCamera = { x: rect.width * 0.06, y: rect.height * 0.08, zoom: 0.78 };
+      } else {
+        const bw = maxX - minX + pad * 2;
+        const bh = maxY - minY + pad * 2;
+        const zx = rect.width / bw;
+        const zy = rect.height / bh;
+        const z = Math.min(Math.max(Math.min(zx, zy), 0.16), 1.7);
+        state.roadmapCamera.zoom = z;
+        state.roadmapCamera.x = rect.width / 2 - ((minX + maxX) / 2) * z;
+        state.roadmapCamera.y = rect.height / 2 - ((minY + maxY) / 2) * z;
+      }
+      applyCamera();
+    };
+
+    const clientToWorld = (clientX, clientY) => {
+      if (!viewport) return { x: 0, y: 0 };
+      const rect = viewport.getBoundingClientRect();
+      const { x: camX, y: camY, zoom } = state.roadmapCamera;
+      const mx = clientX - rect.left;
+      const my = clientY - rect.top;
+      return { x: (mx - camX) / zoom, y: (my - camY) / zoom };
+    };
+
+    applyCamera();
+    if (state.roadmapFitOnce !== state.selectedEntry) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          fitRoadmapCamera();
+          state.roadmapFitOnce = state.selectedEntry;
+        });
+      });
+    }
+
+    if (viewport) {
+      viewport.addEventListener('wheel', (e) => {
+        if (!viewport.contains(e.target)) return;
+        e.preventDefault();
+        const rect = viewport.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        const cam = state.roadmapCamera;
+        if (e.ctrlKey || e.metaKey) {
+          const factor = e.deltaY > 0 ? 0.9 : 1.11;
+          const nextZoom = Math.min(Math.max(cam.zoom * factor, 0.14), 2.6);
+          const wx = (mx - cam.x) / cam.zoom;
+          const wy = (my - cam.y) / cam.zoom;
+          cam.zoom = nextZoom;
+          cam.x = mx - wx * nextZoom;
+          cam.y = my - wy * nextZoom;
+        } else {
+          cam.x -= e.deltaX;
+          cam.y -= e.deltaY;
+        }
+        applyCamera();
+      }, { passive: false });
+    }
+
+    if (worldBg && viewport) {
+      worldBg.addEventListener('dblclick', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const { x, y } = clientToWorld(e.clientX, e.clientY);
+        const sx = Math.max(0, Math.round(x / ROADMAP_GRID) * ROADMAP_GRID);
+        const sy = Math.max(0, Math.round(y / ROADMAP_GRID) * ROADMAP_GRID);
+        updateCurrentEntry((entry) => {
+          entry.roadmap = normalizeRoadmap(entry);
+          const node = createNodeDraft(entry.roadmap.nodes.length);
+          node.position.x = sx;
+          node.position.y = sy;
+          entry.roadmap.nodes.push(node);
+          state.selectedRoadmapNodeId = node.id;
+        });
+      });
+
+      worldBg.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0 || !e.altKey) return;
+        e.preventDefault();
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const ox = state.roadmapCamera.x;
+        const oy = state.roadmapCamera.y;
+        viewport.classList.add('is-panning');
+        const onMove = (ev) => {
+          state.roadmapCamera.x = ox + (ev.clientX - startX);
+          state.roadmapCamera.y = oy + (ev.clientY - startY);
+          applyCamera();
+        };
+        const onUp = () => {
+          viewport.classList.remove('is-panning');
+          document.removeEventListener('pointermove', onMove);
+          document.removeEventListener('pointerup', onUp);
+        };
+        document.addEventListener('pointermove', onMove);
+        document.addEventListener('pointerup', onUp, { once: true });
+      });
+    }
+
+    if (viewport) {
+      viewport.addEventListener('pointerdown', (e) => {
+        if (e.button !== 1) return;
+        e.preventDefault();
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const ox = state.roadmapCamera.x;
+        const oy = state.roadmapCamera.y;
+        viewport.classList.add('is-panning');
+        const onMove = (ev) => {
+          state.roadmapCamera.x = ox + (ev.clientX - startX);
+          state.roadmapCamera.y = oy + (ev.clientY - startY);
+          applyCamera();
+        };
+        const onUp = () => {
+          viewport.classList.remove('is-panning');
+          document.removeEventListener('pointermove', onMove);
+          document.removeEventListener('pointerup', onUp);
+        };
+        document.addEventListener('pointermove', onMove);
+        document.addEventListener('pointerup', onUp, { once: true });
+      });
+    }
+
+    const zoomToward = (factor) => {
+      if (!viewport) return;
+      const rect = viewport.getBoundingClientRect();
+      const mx = rect.width / 2;
+      const my = rect.height / 2;
+      const cam = state.roadmapCamera;
+      const nextZoom = Math.min(Math.max(cam.zoom * factor, 0.14), 2.6);
+      const wx = (mx - cam.x) / cam.zoom;
+      const wy = (my - cam.y) / cam.zoom;
+      cam.zoom = nextZoom;
+      cam.x = mx - wx * nextZoom;
+      cam.y = my - wy * nextZoom;
+      applyCamera();
+    };
+
+    learningEditor.querySelector('[data-roadmap-zoom-in]')?.addEventListener('click', () => zoomToward(1.12));
+    learningEditor.querySelector('[data-roadmap-zoom-out]')?.addEventListener('click', () => zoomToward(1 / 1.12));
+    learningEditor.querySelector('[data-roadmap-zoom-fit]')?.addEventListener('click', () => {
+      fitRoadmapCamera();
+      state.roadmapFitOnce = state.selectedEntry;
+    });
+
+    learningEditor.querySelectorAll('[data-swatch-color]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const input = learningEditor.querySelector('[data-selected-node-field="color"]');
+        if (input) input.value = btn.dataset.swatchColor || '#2563eb';
+      });
+    });
 
     const sidePointFromElement = (element, side) => {
       const x = Number.parseFloat(element.style.left || '0');
@@ -802,6 +1021,24 @@
       });
     });
 
+    const adminThemeSwitcher = learningEditor.querySelector('[data-admin-roadmap-theme-switcher]');
+    const adminThemeToggle = learningEditor.querySelector('[data-admin-theme-toggle]');
+    const adminThemeMenu = learningEditor.querySelector('[data-admin-theme-menu]');
+    adminThemeToggle?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!adminThemeMenu) return;
+      const opening = adminThemeMenu.hidden;
+      adminThemeMenu.hidden = !opening;
+      if (opening) {
+        const closeOnOutside = (ev) => {
+          if (adminThemeSwitcher?.contains(ev.target)) return;
+          adminThemeMenu.hidden = true;
+          document.removeEventListener('click', closeOnOutside, true);
+        };
+        setTimeout(() => document.addEventListener('click', closeOnOutside, true), 0);
+      }
+    });
+
     learningEditor.querySelectorAll('[data-canvas-node-id]').forEach((nodeElement) => {
       nodeElement.addEventListener('pointerdown', (event) => {
         if (event.target.closest('[data-connect-node]')) return;
@@ -815,11 +1052,12 @@
         const originY = Number(node.position?.y || 0);
         nodeElement.setPointerCapture?.(event.pointerId);
 
+        const z = state.roadmapCamera.zoom || 1;
         const move = (moveEvent) => {
-          const dx = moveEvent.clientX - startX;
-          const dy = moveEvent.clientY - startY;
-          const nextX = Math.max(0, Math.round((originX + dx) / 20) * 20);
-          const nextY = Math.max(0, Math.round((originY + dy) / 20) * 20);
+          const dx = (moveEvent.clientX - startX) / z;
+          const dy = (moveEvent.clientY - startY) / z;
+          const nextX = Math.max(0, Math.round((originX + dx) / ROADMAP_GRID) * ROADMAP_GRID);
+          const nextY = Math.max(0, Math.round((originY + dy) / ROADMAP_GRID) * ROADMAP_GRID);
           node.position.x = nextX;
           node.position.y = nextY;
           nodeElement.style.left = `${nextX}px`;
@@ -857,8 +1095,8 @@
       updateCurrentEntry((entry) => {
         entry.roadmap = normalizeRoadmap(entry);
         entry.roadmap.nodes.forEach((node, index) => {
-          node.position.x = 80 + (index % 4) * 260;
-          node.position.y = 80 + Math.floor(index / 4) * 180;
+          node.position.x = Math.round((80 + (index % 4) * 260) / ROADMAP_GRID) * ROADMAP_GRID;
+          node.position.y = Math.round((80 + Math.floor(index / 4) * 180) / ROADMAP_GRID) * ROADMAP_GRID;
         });
       });
     });
@@ -921,7 +1159,7 @@
     learningEditor.querySelectorAll('[data-move-node]').forEach((button) => {
       button.addEventListener('click', () => {
         const move = button.dataset.moveNode;
-        const step = 40;
+        const step = ROADMAP_GRID * 2;
         if (move === 'up') moveNodeByStep(state.selectedRoadmapNodeId, 0, -step);
         if (move === 'down') moveNodeByStep(state.selectedRoadmapNodeId, 0, step);
         if (move === 'left') moveNodeByStep(state.selectedRoadmapNodeId, -step, 0);
@@ -1036,7 +1274,8 @@
   const escapeAttr = (value) => escapeHtml(value).replaceAll('\n', '&#10;');
 
   const renderLearningEditor = () => {
-    document.body.classList.toggle('dev-roadmap-mode', state.learningMode === 'edit' && state.selectedSection === 'roadmap' && !!state.selectedEntry);
+    const fullRoadmap = state.learningMode === 'edit' && state.selectedSection === 'roadmap' && !!state.selectedEntry;
+    document.body.classList.toggle('dev-roadmap-mode', fullRoadmap);
 
     if (state.learningMode === 'list' || !state.selectedEntry) {
       learningEditor.innerHTML = `
@@ -1065,6 +1304,7 @@
         state.learningMode = 'list';
         state.selectedEntry = null;
         state.pendingConnection = null;
+        state.roadmapFitOnce = null;
         renderLearningEditor();
       });
       return;
@@ -1102,20 +1342,32 @@
 
     learningEditor.innerHTML = state.selectedSection === 'roadmap' ? `
       <div class="dev-editor-shell is-roadmap-mode">
-        <div class="dev-roadmap-pagebar">
-          <div class="dev-roadmap-pagebar-left">
-            <button type="button" class="dev-secondary" data-learning-back>Назад</button>
-            <div class="dev-chip">${escapeHtml(state.selectedEntry)}</div>
+        <header class="learning-topbar dev-roadmap-learning-topbar">
+          <a class="learning-logo page-link" href="index.html">Roadstar</a>
+          <div class="dev-roadmap-topbar-center">
+            <button type="button" class="learning-profile-btn" data-learning-back>Назад к списку</button>
+            <span class="dev-roadmap-profession" title="${escapeAttr(state.selectedEntry)}">${escapeHtml(state.selectedEntry)}</span>
+            <nav class="learning-tabs dev-roadmap-section-tabs" aria-label="Секции редактора">
+              ${Object.entries(titles).map(([key, label]) => `
+                <button type="button" class="${state.selectedSection === key ? 'is-active' : ''}" data-learning-section="${key}">${label}</button>
+              `).join('')}
+            </nav>
           </div>
-          <div class="dev-roadmap-pagebar-tabs">
-            ${Object.entries(titles).map(([key, label]) => `
-              <button type="button" class="dev-subtab ${state.selectedSection === key ? 'is-active' : ''}" data-learning-section="${key}">${label}</button>
-            `).join('')}
+          <div class="learning-actions">
+            <button type="button" class="learning-profile-btn dev-roadmap-save-primary" data-learning-save>Сохранить</button>
+            <div class="theme-switcher theme-switcher-dropdown" data-admin-roadmap-theme-switcher>
+              <button type="button" class="theme-toggle theme-icon-toggle" data-admin-theme-toggle aria-label="Тема превью карты">
+                <span data-admin-theme-icon>◐</span>
+              </button>
+              <div class="theme-menu theme-icon-menu" data-admin-theme-menu hidden>
+                <button type="button" data-roadmap-theme="white" class="${state.roadmapTheme === 'white' ? 'is-active' : ''}" aria-label="Белая">◯</button>
+                <button type="button" data-roadmap-theme="black" class="${state.roadmapTheme === 'black' ? 'is-active' : ''}" aria-label="Чёрная">⬤</button>
+                <button type="button" data-roadmap-theme="blue" class="${state.roadmapTheme === 'blue' ? 'is-active' : ''}" aria-label="Тёмно-синяя">◉</button>
+                <button type="button" data-roadmap-theme="beige" class="${state.roadmapTheme === 'beige' ? 'is-active' : ''}" aria-label="Бежевая">◌</button>
+              </div>
+            </div>
           </div>
-          <div class="dev-roadmap-pagebar-right">
-            <button type="button" class="dev-primary" data-learning-save>Сохранить изменения</button>
-          </div>
-        </div>
+        </header>
         <div class="dev-editor-body dev-editor-body-roadmap">
           ${body}
         </div>
@@ -1145,6 +1397,7 @@
       state.learningMode = 'list';
       state.selectedEntry = null;
       state.pendingConnection = null;
+      state.roadmapFitOnce = null;
       renderLearningEditor();
     });
 
@@ -1173,6 +1426,7 @@
   const renderLearning = () => {
     const shell = document.querySelector('.dev-learning-shell');
     const fullRoadmap = state.learningMode === 'edit' && state.selectedSection === 'roadmap' && !!state.selectedEntry;
+    document.body.classList.toggle('dev-roadmap-mode', fullRoadmap);
     if (learningDirectory) {
       learningDirectory.hidden = fullRoadmap;
       learningDirectory.style.display = fullRoadmap ? 'none' : '';

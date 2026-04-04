@@ -1,16 +1,26 @@
-const fs = require("fs");
-const https = require("https");
-const path = require("path");
-const express = require("express");
-const cookieParser = require("cookie-parser");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const Database = require("better-sqlite3");
-const passport = require("passport");
-const GoogleStrategy = require("passport-google-oauth20").Strategy;
-const GitHubStrategy = require("passport-github2").Strategy;
-const OAuth2Strategy = require("passport-oauth2");
-require("dotenv").config();
+import fs from "fs";
+import https from "https";
+import path from "path";
+import { promisify } from "util";
+import { fileURLToPath } from "url";
+import { DatabaseSync } from "node:sqlite";
+import express from "express";
+import cookieParser from "cookie-parser";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import passport from "passport";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { Strategy as GitHubStrategy } from "passport-github2";
+import OAuth2Strategy from "passport-oauth2";
+import dotenv from "dotenv";
+
+const bcryptHash = promisify(bcrypt.hash);
+const bcryptCompare = promisify(bcrypt.compare);
+
+dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -23,8 +33,8 @@ const DB_PATH = path.join(DB_DIR, "roadstar.db");
 
 fs.mkdirSync(DB_DIR, { recursive: true });
 
-const db = new Database(DB_PATH);
-db.pragma("journal_mode = WAL");
+const db = new DatabaseSync(DB_PATH);
+db.exec("PRAGMA journal_mode = WAL;");
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -45,12 +55,12 @@ const findUserByIdStmt = db.prepare("SELECT * FROM users WHERE id = ?");
 const findUserByProviderStmt = db.prepare("SELECT * FROM users WHERE provider = ? AND provider_id = ?");
 const insertUserStmt = db.prepare(`
   INSERT INTO users (email, name, password_hash, created_at, created_date, provider, provider_id, plus, tokens)
-  VALUES (@email, @name, @password_hash, @created_at, @created_date, @provider, @provider_id, @plus, @tokens)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 `);
 const updateOAuthUserStmt = db.prepare(`
   UPDATE users
-  SET name = @name, provider = @provider, provider_id = @provider_id
-  WHERE id = @id
+  SET name = ?, provider = ?, provider_id = ?
+  WHERE id = ?
 `);
 
 app.use(express.json());
@@ -135,20 +145,20 @@ app.post("/api/auth/register", async (req, res) => {
     }
 
     const now = new Date();
-    const password_hash = await bcrypt.hash(rawPassword, 12);
-    const result = insertUserStmt.run({
-      email: normalizedEmail,
-      name: normalizedName,
+    const password_hash = await bcryptHash(rawPassword, 12);
+    const result = insertUserStmt.run(
+      normalizedEmail,
+      normalizedName,
       password_hash,
-      created_at: now.toISOString(),
-      created_date: now.toISOString().slice(0, 10),
-      provider: "local",
-      provider_id: null,
-      plus: "off",
-      tokens: 0
-    });
+      now.toISOString(),
+      now.toISOString().slice(0, 10),
+      "local",
+      null,
+      "off",
+      0
+    );
 
-    const user = sanitizeUser(findUserByIdStmt.get(result.lastInsertRowid));
+    const user = sanitizeUser(findUserByIdStmt.get(Number(result.lastInsertRowid)));
     setAuthCookie(res, user);
     res.status(201).json({ user });
   } catch (error) {
@@ -167,7 +177,7 @@ app.post("/api/auth/login", async (req, res) => {
       return res.status(401).json({ error: "Неверный email или пароль." });
     }
 
-    const matches = await bcrypt.compare(rawPassword, user.password_hash);
+    const matches = await bcryptCompare(rawPassword, user.password_hash);
     if (!matches) {
       return res.status(401).json({ error: "Неверный email или пароль." });
     }
@@ -198,7 +208,7 @@ app.get("/api/auth/me", (req, res) => {
 
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    const user = findUserByIdStmt.get(payload.userId);
+    const user = findUserByIdStmt.get(Number(payload.userId));
     if (!user) {
       return res.status(401).json({ error: "Пользователь не найден." });
     }
@@ -274,39 +284,29 @@ function upsertOAuthUser(profile, provider) {
 
   let user = findUserByProviderStmt.get(provider, providerId);
   if (user) {
-    updateOAuthUserStmt.run({
-      id: user.id,
-      name,
-      provider,
-      provider_id: providerId
-    });
+    updateOAuthUserStmt.run(name, provider, providerId, user.id);
     user = findUserByIdStmt.get(user.id);
     return sanitizeUser(user);
   }
 
   const existingByEmail = findUserByEmailStmt.get(email);
   if (existingByEmail) {
-    updateOAuthUserStmt.run({
-      id: existingByEmail.id,
-      name,
-      provider,
-      provider_id: providerId
-    });
+    updateOAuthUserStmt.run(name, provider, providerId, existingByEmail.id);
     return sanitizeUser(findUserByIdStmt.get(existingByEmail.id));
   }
 
-  const result = insertUserStmt.run({
+  const result = insertUserStmt.run(
     email,
     name,
-    password_hash: null,
-    created_at: now.toISOString(),
-    created_date: now.toISOString().slice(0, 10),
+    null,
+    now.toISOString(),
+    now.toISOString().slice(0, 10),
     provider,
-    provider_id: providerId,
-    plus: "off",
-    tokens: 0
-  });
-  return sanitizeUser(findUserByIdStmt.get(result.lastInsertRowid));
+    providerId,
+    "off",
+    0
+  );
+  return sanitizeUser(findUserByIdStmt.get(Number(result.lastInsertRowid)));
 }
 
 function sanitizeUser(user) {
