@@ -1874,8 +1874,14 @@ body[data-page="dev"] .detail-page-logo {
   position: relative;
   min-width: 0;
   min-height: 520px;
+  max-width: 100%;
   overflow: auto;
   padding: 12px 0 24px;
+}
+
+.learning-roadmap-stage > svg,
+.learning-roadmap-stage > article {
+  max-width: 100%;
 }
 
 .learning-roadmap-lines {
@@ -1921,6 +1927,16 @@ body[data-page="dev"] .detail-page-logo {
 .roadmap-flow-node.is-done {
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.45), 0 16px 28px rgba(0, 0, 0, 0.12);
   opacity: 1;
+  filter: grayscale(0.6);
+}
+
+.roadmap-flow-node.is-done strong {
+  color: #666;
+}
+
+.roadmap-flow-subtask.is-done {
+  opacity: 0.5;
+  text-decoration: line-through;
 }
 
 .dev-roadmap-studio {
@@ -2196,6 +2212,26 @@ body[data-page="dev"] .detail-page-logo {
   pointer-events: auto;
 }
 
+.dev-roadmap-canvas-subtasks {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.dev-roadmap-canvas-subtask {
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.dev-roadmap-canvas-subtask:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
 @media (max-width: 960px) {
   .dev-roadmap-split {
     flex-direction: column;
@@ -2291,6 +2327,43 @@ body[data-page="dev"] .detail-page-logo {
     linear-gradient(90deg, rgba(120, 160, 220, 0.09) 1px, transparent 1px);
   background-size: 20px 20px;
   background-position: 0 0;
+}
+
+.dev-roadmap-canvas-grid[data-preview-theme="white"] {
+  background-color: #f0f0f0;
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.06) 1px, transparent 1px);
+}
+
+.dev-roadmap-canvas-grid[data-preview-theme="black"] {
+  background-color: #111317;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+}
+
+.dev-roadmap-canvas-grid[data-preview-theme="blue"] {
+  background-color: #0c1626;
+  background-image:
+    linear-gradient(rgba(173, 205, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(173, 205, 255, 0.08) 1px, transparent 1px);
+}
+
+.dev-roadmap-canvas-grid[data-preview-theme="beige"] {
+  background-color: #e8dcc8;
+  background-image:
+    linear-gradient(rgba(75, 49, 27, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(75, 49, 27, 0.08) 1px, transparent 1px);
+}
+
+.dev-roadmap-canvas-node {
+  color: #111;
+}
+
+.dev-roadmap-canvas-node strong,
+.dev-roadmap-canvas-node span {
+  color: inherit;
 }
 
 .dev-roadmap-canvas-grid::before {
@@ -2634,6 +2707,38 @@ body[data-page="dev"] .detail-page-logo {
 .learning-modal-head h2 {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.learning-mentor-btn {
+  background: #ffd84d;
+  color: #111;
+  border: none;
+  border-radius: 14px;
+  padding: 10px 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.learning-practice-btn {
+  background: var(--accent-blue);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  padding: 10px 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.learning-resources a,
+.learning-resources .learning-link {
+  color: #87c5ff;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.learning-resources a:hover,
+.learning-resources .learning-link:hover {
+  text-decoration: underline;
 }
 
 .learning-resources {

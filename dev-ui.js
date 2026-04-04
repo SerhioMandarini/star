@@ -62,7 +62,8 @@
         freeLinks: '',
         articleLinks: '',
         plusLinks: '',
-        practiceEnabled: false
+        practiceEnabled: false,
+        practiceText: ''
       };
     }
     return {
@@ -72,7 +73,8 @@
       freeLinks: subTask?.freeLinks || '',
       articleLinks: subTask?.articleLinks || '',
       plusLinks: subTask?.plusLinks || '',
-      practiceEnabled: Boolean(subTask?.practiceEnabled)
+      practiceEnabled: Boolean(subTask?.practiceEnabled),
+      practiceText: subTask?.practiceText || ''
     };
   };
 
@@ -199,8 +201,8 @@
   const parseLines = (value) => String(value || '').split('\n').map((item) => item.trim()).filter(Boolean);
 
   const createNodeDraft = (index = 0) => {
-    const bx = Math.round((160 + index * 48) / ROADMAP_GRID) * ROADMAP_GRID;
-    const by = Math.round((160 + index * 48) / ROADMAP_GRID) * ROADMAP_GRID;
+    const bx = Math.round((80 + index * 40) / ROADMAP_GRID) * ROADMAP_GRID;
+    const by = Math.round((80 + index * 120) / ROADMAP_GRID) * ROADMAP_GRID;
     return {
       id: `skill-${Date.now()}-${index}`,
       type: 'skillNode',
@@ -213,6 +215,7 @@
         articleLinks: '',
         plusLinks: '',
         practiceEnabled: false,
+        practiceText: '',
         subTasks: []
       },
       position: { x: bx, y: by }
@@ -242,6 +245,7 @@
     selectedEntry: null,
     selectedSection: 'roadmap',
     selectedRoadmapNodeId: null,
+    selectedSubtaskIndex: null,
     pendingConnection: null,
     roadmapTheme: 'white',
     roadmapCamera: { x: 80, y: 64, zoom: 0.85 },
@@ -480,21 +484,29 @@
       <button type="button" class="dev-roadmap-swatch" data-swatch-color="${escapeAttr(c)}" style="--rs-swatch:${escapeAttr(c)}" title="${escapeAttr(c)}" aria-label="Палитра ${escapeAttr(c)}"></button>
     `).join('');
 
-    const previewNodes = roadmap.nodes.map((node) => `
-      <article
-        class="dev-roadmap-canvas-node ${state.selectedRoadmapNodeId === node.id ? 'is-selected' : ''}"
-        data-select-roadmap-node="${escapeAttr(node.id)}"
-        data-canvas-node-id="${escapeAttr(node.id)}"
-        style="left:${Number(node.position?.x || 0)}px; top:${Number(node.position?.y || 0)}px; border-color:${escapeAttr(node.data?.color || '#2563eb')}; background:${escapeAttr(node.data?.color || '#2563eb')};"
-      >
-        <button type="button" class="dev-roadmap-canvas-handle top ${state.pendingConnection?.nodeId === node.id && state.pendingConnection?.side === 'top' ? 'is-active' : ''}" data-connect-node="${escapeAttr(node.id)}" data-connect-side="top" aria-label="Соединить сверху"></button>
-        <button type="button" class="dev-roadmap-canvas-handle right ${state.pendingConnection?.nodeId === node.id && state.pendingConnection?.side === 'right' ? 'is-active' : ''}" data-connect-node="${escapeAttr(node.id)}" data-connect-side="right" aria-label="Соединить справа"></button>
-        <button type="button" class="dev-roadmap-canvas-handle bottom ${state.pendingConnection?.nodeId === node.id && state.pendingConnection?.side === 'bottom' ? 'is-active' : ''}" data-connect-node="${escapeAttr(node.id)}" data-connect-side="bottom" aria-label="Соединить снизу"></button>
-        <button type="button" class="dev-roadmap-canvas-handle left ${state.pendingConnection?.nodeId === node.id && state.pendingConnection?.side === 'left' ? 'is-active' : ''}" data-connect-node="${escapeAttr(node.id)}" data-connect-side="left" aria-label="Соединить слева"></button>
-        <strong>${escapeHtml(node.data?.label || 'Новый навык')}</strong>
-        <span>${escapeHtml(node.data?.status || 'Draft')}</span>
-      </article>
-    `).join('');
+    const previewNodes = roadmap.nodes.map((node) => {
+      const subTasks = (node.data?.subTasks || []).slice(0, 4).map((st, i) => `
+        <div class="dev-roadmap-canvas-subtask" data-dev-roadmap-node="${escapeAttr(node.id)}" data-dev-roadmap-subtask="${i}">
+          ${escapeHtml(st.label || 'Подпункт ' + (i + 1))}
+        </div>
+      `).join('');
+      return `
+        <article
+          class="dev-roadmap-canvas-node ${state.selectedRoadmapNodeId === node.id ? 'is-selected' : ''}"
+          data-select-roadmap-node="${escapeAttr(node.id)}"
+          data-canvas-node-id="${escapeAttr(node.id)}"
+          style="left:${Number(node.position?.x || 0)}px; top:${Number(node.position?.y || 0)}px; border-color:${escapeAttr(node.data?.color || '#2563eb')}; background:${escapeAttr(node.data?.color || '#2563eb')};"
+        >
+          <button type="button" class="dev-roadmap-canvas-handle top ${state.pendingConnection?.nodeId === node.id && state.pendingConnection?.side === 'top' ? 'is-active' : ''}" data-connect-node="${escapeAttr(node.id)}" data-connect-side="top" aria-label="Соединить сверху"></button>
+          <button type="button" class="dev-roadmap-canvas-handle right ${state.pendingConnection?.nodeId === node.id && state.pendingConnection?.side === 'right' ? 'is-active' : ''}" data-connect-node="${escapeAttr(node.id)}" data-connect-side="right" aria-label="Соединить справа"></button>
+          <button type="button" class="dev-roadmap-canvas-handle bottom ${state.pendingConnection?.nodeId === node.id && state.pendingConnection?.side === 'bottom' ? 'is-active' : ''}" data-connect-node="${escapeAttr(node.id)}" data-connect-side="bottom" aria-label="Соединить снизу"></button>
+          <button type="button" class="dev-roadmap-canvas-handle left ${state.pendingConnection?.nodeId === node.id && state.pendingConnection?.side === 'left' ? 'is-active' : ''}" data-connect-node="${escapeAttr(node.id)}" data-connect-side="left" aria-label="Соединить слева"></button>
+          <strong>${escapeHtml(node.data?.label || 'Новый навык')}</strong>
+          <span>${escapeHtml(node.data?.status || 'Draft')}</span>
+          ${subTasks ? `<div class="dev-roadmap-canvas-subtasks">${subTasks}</div>` : ''}
+        </article>
+      `;
+    }).join('');
 
     const edgeOptions = (roadmap.edges || []).map((edge, index) => `
       <article class="dev-roadmap-edge-item">
@@ -593,7 +605,6 @@
               </div>
               <div class="dev-roadmap-grid">
                 <label>ID<input type="text" value="${escapeAttr(selectedNode.id || '')}" data-selected-node-field="id"></label>
-                <label>Тип<input type="text" value="${escapeAttr(selectedNode.type || 'skillNode')}" data-selected-node-field="type"></label>
                 <label>Название<input type="text" value="${escapeAttr(selectedNode.data?.label || '')}" data-selected-node-field="label"></label>
                 <label>Статус
                   <select data-selected-node-field="status">
@@ -612,12 +623,11 @@
                     <option value="true" ${selectedNode.data?.practiceEnabled ? 'selected' : ''}>Да</option>
                   </select>
                 </label>
-                <label>X<input type="number" value="${Number(selectedNode.position?.x || 0)}" data-selected-node-field="x"></label>
-                <label>Y<input type="number" value="${Number(selectedNode.position?.y || 0)}" data-selected-node-field="y"></label>
+                <label class="dev-roadmap-grid-wide">Задание для практики<textarea rows="4" data-selected-node-field="practiceText">${escapeHtml(selectedNode.data?.practiceText || '')}</textarea></label>
                 <label class="dev-roadmap-grid-wide">Описание<textarea rows="4" data-selected-node-field="description">${escapeHtml(selectedNode.data?.description || '')}</textarea></label>
-                <label class="dev-roadmap-grid-wide">Полезные ссылки<textarea rows="3" data-selected-node-field="freeLinks">${escapeHtml(selectedNode.data?.freeLinks || '')}</textarea></label>
-                <label class="dev-roadmap-grid-wide">Статьи<textarea rows="3" data-selected-node-field="articleLinks">${escapeHtml(selectedNode.data?.articleLinks || '')}</textarea></label>
-                <label class="dev-roadmap-grid-wide">Ресурсы plus<textarea rows="3" data-selected-node-field="plusLinks">${escapeHtml(selectedNode.data?.plusLinks || '')}</textarea></label>
+                <label class="dev-roadmap-grid-wide">Полезные ссылки (каждая с новой строки)<textarea rows="3" data-selected-node-field="freeLinks">${escapeHtml(selectedNode.data?.freeLinks || '')}</textarea></label>
+                <label class="dev-roadmap-grid-wide">Статьи (каждая с новой строки)<textarea rows="3" data-selected-node-field="articleLinks">${escapeHtml(selectedNode.data?.articleLinks || '')}</textarea></label>
+                <label class="dev-roadmap-grid-wide">Ресурсы plus (каждая с новой строки)<textarea rows="3" data-selected-node-field="plusLinks">${escapeHtml(selectedNode.data?.plusLinks || '')}</textarea></label>
               </div>
               <div class="dev-roadmap-position-controls">
                 <button type="button" class="dev-secondary" data-move-node="up">↑</button>
@@ -635,7 +645,33 @@
                 <div class="dev-subtask-stack">
                   ${subTasks || '<div class="dev-user-card">Пока нет подпунктов.</div>'}
                 </div>
-                <button type="button" class="dev-primary" data-save-subtasks>Сохранить подпункты</button>
+                ${state.selectedSubtaskIndex !== null ? (() => {
+                  const sub = selectedNode?.data?.subTasks?.[state.selectedSubtaskIndex];
+                  if (!sub) return '';
+                  return `
+                    <section class="dev-roadmap-section" data-subtask-editor>
+                      <div class="dev-roadmap-item-head">
+                        <h4>Редактор подпункта ${state.selectedSubtaskIndex + 1}</h4>
+                        <button type="button" class="dev-secondary" data-close-subtask-editor>Закрыть</button>
+                      </div>
+                      <div class="dev-roadmap-grid">
+                        <label>Название<input type="text" value="${escapeAttr(sub.label || '')}" data-edit-subtask-field="label"></label>
+                        <label>Практика
+                          <select data-edit-subtask-field="practiceEnabled">
+                            <option value="false" ${!sub.practiceEnabled ? 'selected' : ''}>Нет</option>
+                            <option value="true" ${sub.practiceEnabled ? 'selected' : ''}>Да</option>
+                          </select>
+                        </label>
+                        <label class="dev-roadmap-grid-wide">Задание<textarea rows="3" data-edit-subtask-field="practiceText">${escapeHtml(sub.practiceText || '')}</textarea></label>
+                        <label class="dev-roadmap-grid-wide">Описание<textarea rows="3" data-edit-subtask-field="description">${escapeHtml(sub.description || '')}</textarea></label>
+                        <label class="dev-roadmap-grid-wide">Полезные ссылки<textarea rows="2" data-edit-subtask-field="freeLinks">${escapeHtml(sub.freeLinks || '')}</textarea></label>
+                        <label class="dev-roadmap-grid-wide">Статьи<textarea rows="2" data-edit-subtask-field="articleLinks">${escapeHtml(sub.articleLinks || '')}</textarea></label>
+                        <label class="dev-roadmap-grid-wide">Ресурсы plus<textarea rows="2" data-edit-subtask-field="plusLinks">${escapeHtml(sub.plusLinks || '')}</textarea></label>
+                      </div>
+                      <button type="button" class="dev-primary" data-save-single-subtask>Сохранить подпункт</button>
+                    </section>
+                  `;
+                })() : ''}
               </section>
             ` : `
               <div class="dev-empty-state">
@@ -977,8 +1013,19 @@
     };
 
     learningEditor.querySelectorAll('[data-select-roadmap-node]').forEach((button) => {
-      button.addEventListener('click', () => {
+      button.addEventListener('click', (e) => {
+        if (e.target.closest('.dev-roadmap-canvas-subtask')) return;
         state.selectedRoadmapNodeId = button.dataset.selectRoadmapNode;
+        state.selectedSubtaskIndex = null;
+        renderLearningEditor();
+      });
+    });
+
+    learningEditor.querySelectorAll('[data-dev-roadmap-subtask]').forEach((el) => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        state.selectedRoadmapNodeId = el.dataset.devRoadmapNode;
+        state.selectedSubtaskIndex = Number(el.dataset.devRoadmapSubtask);
         renderLearningEditor();
       });
     });
@@ -1017,6 +1064,23 @@
     learningEditor.querySelectorAll('[data-roadmap-theme]').forEach((button) => {
       button.addEventListener('click', () => {
         state.roadmapTheme = button.dataset.roadmapTheme || 'white';
+        const viewport = learningEditor.querySelector('[data-roadmap-viewport]');
+        if (viewport) {
+          viewport.setAttribute('data-preview-theme', state.roadmapTheme);
+        }
+        const canvasGrid = learningEditor.querySelector('[data-roadmap-canvas-grid]');
+        if (canvasGrid) {
+          canvasGrid.setAttribute('data-preview-theme', state.roadmapTheme);
+        }
+        const isDark = state.roadmapTheme === 'black' || state.roadmapTheme === 'blue';
+        const textColor = isDark ? '#f5f7fb' : '#111';
+        const cards = learningEditor.querySelectorAll('.dev-roadmap-canvas-node');
+        cards.forEach((card) => {
+          card.style.color = textColor;
+          card.querySelectorAll('strong, span').forEach((el) => {
+            el.style.color = textColor;
+          });
+        });
         renderLearningEditor();
       });
     });
@@ -1126,7 +1190,7 @@
         const nextId = learningEditor.querySelector('[data-selected-node-field="id"]')?.value.trim() || node.id;
         const previousId = node.id;
         node.id = nextId;
-        node.type = learningEditor.querySelector('[data-selected-node-field="type"]')?.value.trim() || 'skillNode';
+        node.type = 'skillNode';
         node.data.label = learningEditor.querySelector('[data-selected-node-field="label"]')?.value.trim() || 'Новый навык';
         node.data.status = learningEditor.querySelector('[data-selected-node-field="status"]')?.value.trim() || 'Draft';
         node.data.color = learningEditor.querySelector('[data-selected-node-field="color"]')?.value.trim() || '#2563eb';
@@ -1135,8 +1199,7 @@
         node.data.articleLinks = learningEditor.querySelector('[data-selected-node-field="articleLinks"]')?.value.trim() || '';
         node.data.plusLinks = learningEditor.querySelector('[data-selected-node-field="plusLinks"]')?.value.trim() || '';
         node.data.practiceEnabled = (learningEditor.querySelector('[data-selected-node-field="practiceEnabled"]')?.value || 'false') === 'true';
-        node.position.x = Number(learningEditor.querySelector('[data-selected-node-field="x"]')?.value || 0);
-        node.position.y = Number(learningEditor.querySelector('[data-selected-node-field="y"]')?.value || 0);
+        node.data.practiceText = learningEditor.querySelector('[data-selected-node-field="practiceText"]')?.value.trim() || '';
         if (previousId !== nextId) {
           entry.roadmap.edges.forEach((edge) => {
             if (edge.source === previousId) edge.source = nextId;
@@ -1244,6 +1307,33 @@
       }
     });
 
+    learningEditor.querySelector('[data-close-subtask-editor]')?.addEventListener('click', () => {
+      state.selectedSubtaskIndex = null;
+      renderLearningEditor();
+    });
+
+    learningEditor.querySelector('[data-save-single-subtask]')?.addEventListener('click', () => {
+      const idx = state.selectedSubtaskIndex;
+      if (idx === null) return;
+      updateCurrentEntry((entry) => {
+        entry.roadmap = normalizeRoadmap(entry);
+        const node = entry.roadmap.nodes.find((item) => item.id === state.selectedRoadmapNodeId);
+        if (!node || !node.data?.subTasks?.[idx]) return;
+        const fields = ['label', 'description', 'freeLinks', 'articleLinks', 'plusLinks', 'practiceText'];
+        fields.forEach((f) => {
+          const input = learningEditor.querySelector(`[data-edit-subtask-field="${f}"]`);
+          if (input) {
+            node.data.subTasks[idx][f] = input.value.trim();
+          }
+        });
+        const sel = learningEditor.querySelector('[data-edit-subtask-field="practiceEnabled"]');
+        if (sel) {
+          node.data.subTasks[idx].practiceEnabled = sel.value === 'true';
+        }
+        state.selectedSubtaskIndex = null;
+      });
+    });
+
     paintEdges();
   };
 
@@ -1254,12 +1344,17 @@
 
   const updateCurrentEntry = (updater) => {
     if (!state.selectedEntry) return;
+    const sidebar = learningEditor.querySelector('.dev-roadmap-sidebar-scroll');
+    const sidebarScrollTop = sidebar ? sidebar.scrollTop : 0;
     const store = getLearningStore();
     const current = JSON.parse(JSON.stringify(store[state.selectedEntry] || ensureProfessionData(state.selectedEntry)));
     updater(current);
     store[state.selectedEntry] = current;
     write(K.learningByItem, store);
     renderLearningEditor();
+    requestAnimationFrame(() => {
+      if (sidebar) sidebar.scrollTop = sidebarScrollTop;
+    });
   };
 
   const moveNodeByStep = (nodeId, dx, dy) => {

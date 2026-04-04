@@ -52,19 +52,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeNode = learningModal.dataset.activeNode;
     if (activeNode) {
       try {
-        const progress = JSON.parse(localStorage.getItem('roadstar-learning-progress') || '{"completed":{}}');
+        const progress = readJson('roadstar-learning-progress', { completed: {} });
         progress.completed = progress.completed || {};
         progress.completed[activeNode] = true;
         localStorage.setItem('roadstar-learning-progress', JSON.stringify(progress));
         const node = document.querySelector(`[data-roadmap-node="${activeNode}"]`);
-        node?.classList.add('is-done');
-        const total = document.querySelectorAll('[data-roadmap-node]').length || 1;
-        const done = document.querySelectorAll('[data-roadmap-node].is-done').length;
+        if (node) {
+          node.classList.add('is-done');
+          const color = node.style.backgroundColor;
+          node.style.background = '#9ca3af';
+          node.style.color = '#666';
+          const subtasks = node.querySelectorAll('.roadmap-flow-subtask');
+          subtasks.forEach(st => st.classList.add('is-done'));
+        }
+        const allNodes = document.querySelectorAll('[data-roadmap-node]');
+        const total = allNodes.length || 1;
+        const done = allNodes.length ? Array.from(allNodes).filter(n => n.classList.contains('is-done')).length : 0;
         const percent = Math.round((done / total) * 100);
         const progressText = document.querySelector('[data-learning-progress]');
         const progressBar = document.querySelector('[data-learning-progress-bar]');
         if (progressText) progressText.textContent = `${percent}%`;
-        if (progressBar) progressBar.style.width = `${percent}%`;
+        if (progressBar) progressBar.style.width = `${Math.min(percent, 100)}%`;
       } catch {}
     }
     learningModal.hidden = true;
@@ -262,14 +270,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const formatMultiLine = (value) => {
     const lines = String(value || '')
-      .split(/\n|,/)
+      .split(/\n/)
       .map((item) => item.trim())
       .filter(Boolean);
-    return lines.length ? lines.map((line) => `<div>${escapeHtml(line)}</div>`).join('') : 'Скоро будет';
+    if (!lines.length) return 'Скоро будет';
+    return lines.map((line) => {
+      const trimmed = line.trim();
+      const httpMatch = trimmed.match(/^(https?:\/\/[^\s]+)/);
+      if (httpMatch) {
+        const url = httpMatch[1];
+        const text = trimmed.slice(url.length).trim() || url;
+        return `<div><a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="learning-link">${escapeHtml(text || url)}</a></div>`;
+      }
+      return `<div>${escapeHtml(line)}</div>`;
+    }).join('');
   };
 
-  const tintColor = (hex) => {
+  const isLink = (value) => /^https?:\/\//i.test(String(value || '').trim());
+
+  const tintColor = (hex, done = false) => {
     const safe = /^#?[0-9a-fA-F]{6}$/.test(hex || '') ? (hex.startsWith('#') ? hex : `#${hex}`) : '#d9d9d9';
+    if (done) {
+      return '#9ca3af';
+    }
     return safe;
   };
 
@@ -281,16 +304,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const progressText = document.querySelector('[data-learning-progress]');
     const progressBar = document.querySelector('[data-learning-progress-bar]');
     if (progressText) progressText.textContent = `${percent}%`;
-    if (progressBar) progressBar.style.width = `${percent}%`;
+    if (progressBar) {
+      progressBar.style.width = `${Math.min(percent, 100)}%`;
+    }
   };
 
   const openRoadmapModal = (node) => {
     if (!learningModal) return;
     learningModal.hidden = false;
     learningModal.dataset.activeNode = node.id;
+    learningModal.dataset.activeNodeData = JSON.stringify(node.data || {});
     if (overlay) overlay.hidden = false;
     learningModal.querySelector('[data-modal-title]').textContent = node.data?.label || 'Скоро будет';
-    learningModal.querySelector('[data-modal-text]').textContent = node.data?.description || 'Скоро будет';
+    const descText = node.data?.description?.trim();
+    const modalText = learningModal.querySelector('[data-modal-text]');
+    modalText.textContent = descText || '';
+    modalText.hidden = !descText;
+    const descLabel = modalText.previousElementSibling;
+    if (descLabel && descLabel.tagName === 'STRONG') {
+      descLabel.hidden = !descText;
+    }
     learningModal.querySelector('[data-modal-free-links]').innerHTML = formatMultiLine(node.data?.freeLinks);
     learningModal.querySelector('[data-modal-plus-links]').innerHTML = formatMultiLine(node.data?.plusLinks);
     learningModal.querySelector('[data-modal-article-links]').innerHTML = formatMultiLine(node.data?.articleLinks);
@@ -301,6 +334,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (enabled) {
         practiceButton.textContent = 'Открыть практику';
         practiceButton.onclick = () => {
+          const entry = getLearningEntry();
+          const practiceContent = node.data?.practiceText || entry.practice || 'Практика пока не добавлена.';
+          const practicePanel = document.querySelector('[data-learning-panel="practice"]');
+          if (practicePanel) {
+            practicePanel.innerHTML = `
+              <div class="practice-card">
+                <h2>${escapeHtml(node.data?.label || 'Практика')}</h2>
+                <p>${escapeHtml(practiceContent)}</p>
+              </div>
+            `;
+          }
           document.querySelector('[data-learning-tab="practice"]')?.click();
           closeLearningModalWithoutReload();
         };
@@ -360,19 +404,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const cards = nodes.map((node) => {
       const color = node.data?.color || '#d9d9d9';
-      const subtasks = (node.data?.subTasks || []).slice(0, 4).map((item, subIndex) => `
-        <button type="button" class="roadmap-flow-subtask" data-roadmap-node="${escapeHtml(node.id)}" data-roadmap-subtask="${subIndex}">
-          ${escapeHtml(item.label || item)}
-        </button>
-      `).join('');
-      const done = progress.completed?.[node.id];
+      const nodeDone = progress.completed?.[node.id];
+      const subtasks = (node.data?.subTasks || []).slice(0, 4).map((item, subIndex) => {
+        const subId = `${node.id}-sub-${subIndex}`;
+        const subDone = progress.completed?.[subId];
+        return `
+          <button type="button" class="roadmap-flow-subtask ${subDone ? 'is-done' : ''}" data-roadmap-node="${escapeHtml(node.id)}" data-roadmap-subtask="${subIndex}" data-subtask-id="${escapeHtml(subId)}">
+            ${escapeHtml(item.label || item)}
+          </button>
+        `;
+      }).join('');
       return `
         <article
-          class="roadmap-flow-node ${done ? 'is-done' : ''}"
+          class="roadmap-flow-node ${nodeDone ? 'is-done' : ''}"
           data-roadmap-node="${escapeHtml(node.id)}"
           role="button"
           tabindex="0"
-          style="left:${Number(node.position?.x || 0)}px; top:${Number(node.position?.y || 0)}px; border-color:${escapeHtml(color)}; background:${tintColor(color)};"
+          style="left:${Number(node.position?.x || 0)}px; top:${Number(node.position?.y || 0)}px; border-color:${escapeHtml(color)}; background:${tintColor(color, nodeDone)}; ${nodeDone ? 'color:#666;' : ''}"
         >
           <div class="roadmap-flow-node-head">
             <strong>${escapeHtml(node.data?.label || 'Без названия')}</strong>
@@ -412,21 +460,46 @@ document.addEventListener('DOMContentLoaded', () => {
     panel.querySelectorAll('[data-roadmap-subtask]').forEach((button) => {
       button.addEventListener('click', (event) => {
         event.stopPropagation();
-        const node = byId[button.dataset.roadmapNode];
-        const subtask = node?.data?.subTasks?.[Number(button.dataset.roadmapSubtask)];
-        if (subtask) {
-          openRoadmapModal({
-            id: `${node.id}-sub-${button.dataset.roadmapSubtask}`,
-            data: {
-              label: subtask.label,
-              description: subtask.description,
-              freeLinks: subtask.freeLinks,
-              articleLinks: subtask.articleLinks,
-              plusLinks: subtask.plusLinks,
-              practiceEnabled: subtask.practiceEnabled
-            }
-          });
+        const nodeId = button.dataset.roadmapNode;
+        const subIndex = Number(button.dataset.roadmapSubtask);
+        const subId = button.dataset.subtaskId;
+        const node = byId[nodeId];
+        const subtask = node?.data?.subTasks?.[subIndex];
+        if (!subtask) return;
+        
+        const isMarkDone = event.ctrlKey || event.metaKey;
+        if (isMarkDone) {
+          try {
+            const progress = readJson('roadstar-learning-progress', { completed: {} });
+            progress.completed = progress.completed || {};
+            progress.completed[subId] = !progress.completed[subId];
+            localStorage.setItem('roadstar-learning-progress', JSON.stringify(progress));
+            button.classList.toggle('is-done', progress.completed[subId]);
+            const entry = getLearningEntry();
+            const total = (entry.roadmap?.nodes || []).length;
+            const done = total ? Object.values(progress.completed || {}).filter(Boolean).length : 0;
+            const percent = Math.round((done / total) * 100);
+            const progressText = document.querySelector('[data-learning-progress]');
+            const progressBar = document.querySelector('[data-learning-progress-bar]');
+            if (progressText) progressText.textContent = `${percent}%`;
+            if (progressBar) progressBar.style.width = `${Math.min(percent, 100)}%`;
+          } catch {}
+          return;
         }
+        
+        openRoadmapModal({
+          id: subId,
+          data: {
+            label: subtask.label,
+            description: subtask.description,
+            freeLinks: subtask.freeLinks,
+            articleLinks: subtask.articleLinks,
+            plusLinks: subtask.plusLinks,
+            practiceEnabled: subtask.practiceEnabled,
+            parentNodeId: nodeId,
+            subIndex: subIndex
+          }
+        });
       });
     });
 
