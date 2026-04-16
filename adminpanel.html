@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Roadstar Админ панель</title>
+  <title>Roadstar Админпанель</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Unbounded:wght@500;700&display=swap" rel="stylesheet">
@@ -12,7 +12,7 @@
 <body data-page="dev">
   <main class="utility-page">
     <a class="detail-page-logo page-link" href="index.html" aria-label="Roadstar">
-      <span class="brand-wordmark">Roadstar Админ панель</span>
+      <span class="brand-wordmark">Roadstar Админпанель</span>
     </a>
 
     <section class="dev-top-tabs">
@@ -91,6 +91,13 @@
             <label>GitHub token<input type="text" data-service-token="github"></label>
             <label>Yandex token<input type="text" data-service-token="yandex"></label>
             <button type="button" class="dev-primary" data-save-services>Сохранить сервисы</button>
+          </div>
+          <div class="dev-form-grid">
+            <label>AI provider<input type="text" data-ai-config="provider" placeholder="groq"></label>
+            <label>AI model<input type="text" data-ai-config="model" placeholder="llama-3.3-70b-versatile"></label>
+            <label>AI endpoint<input type="text" data-ai-config="endpoint" placeholder="https://api.groq.com/openai/v1/chat/completions"></label>
+            <label>AI api key<input type="password" data-ai-config="apiKey" placeholder="Введите API ключ"></label>
+            <button type="button" class="dev-primary" data-save-ai-config>Сохранить AI</button>
           </div>
           <div class="dev-stack" data-users-editor></div>
         </section>

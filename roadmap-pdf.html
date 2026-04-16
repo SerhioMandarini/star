@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roadmap PDF</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #ffffff;
+      color: #111111;
+    }
+
+    .page {
+      width: min(980px, calc(100% - 48px));
+      margin: 0 auto;
+      padding: 32px 0 48px;
+    }
+
+    h1 {
+      margin: 0 0 24px;
+      font-size: 30px;
+    }
+
+    .node {
+      margin-bottom: 18px;
+      padding: 18px 20px;
+      border: 1px solid #d9d9d9;
+      border-radius: 16px;
+      page-break-inside: avoid;
+    }
+
+    .node h2 {
+      margin: 0 0 8px;
+      font-size: 20px;
+    }
+
+    .muted {
+      color: #555;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    @media print {
+      .print-actions {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="print-actions">
+      <button onclick="window.print()">Скачать / Печать</button>
+    </div>
+    <h1 id="title">Дорожная карта</h1>
+    <div id="content"></div>
+  </div>
+  <script>
+    const readJson = (key, fallback) => {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+      } catch {
+        return fallback;
+      }
+    };
+
+    const params = new URLSearchParams(window.location.search);
+    const item = params.get('item') || 'Дорожная карта';
+    const byItem = readJson('roadstar-learning-by-item', {});
+    const legacy = readJson('roadstar-learning-content', {});
+    const entry = byItem[item] || legacy || {};
+    const nodes = entry.roadmap?.nodes || [];
+
+    document.getElementById('title').textContent = item;
+    document.getElementById('content').innerHTML = nodes.map((node) => `
+      <section class="node">
+        <h2>${node.data?.label || 'Без названия'}</h2>
+        <div class="muted">${(node.data?.description || 'Скоро будет').replaceAll('<', '&lt;').replaceAll('>', '&gt;')}</div>
+      </section>
+    `).join('') || '<div class="muted">Скоро будет.</div>';
+  </script>
+</body>
+</html>

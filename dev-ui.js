@@ -1,6 +1,9 @@
 ﻿document.addEventListener('DOMContentLoaded', () => {
   if (document.body.dataset.page !== 'dev') return;
 
+  const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:3000' : '';
+  const apiUrl = (path) => `${API_BASE}${path}`;
+
   const K = {
     site: 'roadstar-site-content',
     lists: 'roadstar-custom-lists',
@@ -571,32 +574,6 @@
       <div class="dev-roadmap-studio dev-roadmap-studio-v2">
         <div class="dev-roadmap-split">
           <aside class="dev-roadmap-sidebar" aria-label="Свойства и связи">
-            <div class="dev-roadmap-sidebar-head">
-              <h3 class="dev-roadmap-sidebar-title">Дорожная карта</h3>
-              <p class="dev-roadmap-sidebar-hint">Холст: <kbd>Alt</kbd>+левая кнопка или средняя кнопка — сдвиг вида · колёсико — панорама · <kbd>Ctrl</kbd>+колесо — масштаб · двойной клик по сетке — новый блок · синие точки на сторонах блока — связь между блоками.</p>
-            </div>
-            <section class="dev-roadmap-sidebar-tools">
-              <div class="dev-roadmap-section-head"><h4>Инструменты</h4></div>
-              <div class="dev-roadmap-tools-row">
-                <button type="button" class="dev-primary" data-add-roadmap-node>+ Блок</button>
-                <button type="button" class="dev-secondary" data-add-roadmap-edge>+ Связь</button>
-                <button type="button" class="dev-secondary" data-roadmap-center>Сетка</button>
-              </div>
-              <div class="dev-roadmap-stats-row">
-                <span class="dev-chip dev-chip-compact">Узлов: ${roadmap.nodes.length}</span>
-                <span class="dev-chip dev-chip-compact">Связей: ${roadmap.edges.length}</span>
-                <span class="dev-chip dev-chip-compact">Шаг сетки: ${ROADMAP_GRID}px</span>
-              </div>
-              <p class="dev-roadmap-connect-hint">${state.pendingConnection ? `Связь: от «${escapeHtml(state.pendingConnection.side)}» узла <strong>${escapeHtml(state.pendingConnection.nodeId)}</strong> — кликни точку на другом блоке.` : 'Связь: кликни синюю точку на первом блоке, затем на втором.'}</p>
-              <div class="dev-roadmap-theme-block">
-                <span class="dev-roadmap-theme-label">Тема превью в обучении</span>
-                <div class="dev-roadmap-theme-switch">
-                  ${['white', 'black', 'blue', 'beige'].map((theme) => `
-                    <button type="button" class="dev-secondary ${state.roadmapTheme === theme ? 'is-active' : ''}" data-roadmap-theme="${theme}">${theme}</button>
-                  `).join('')}
-                </div>
-              </div>
-            </section>
             <div class="dev-roadmap-sidebar-scroll">
             ${selectedNode ? `
               <div class="dev-roadmap-canvas-head">
@@ -718,6 +695,28 @@
             </div>
           </div>
         </div>
+        <section class="dev-roadmap-sidebar-tools dev-roadmap-bottom-tools">
+          <div class="dev-roadmap-tools-row">
+            <button type="button" class="dev-primary" data-add-roadmap-node>+ Блок</button>
+            <button type="button" class="dev-secondary" data-add-roadmap-edge>+ Связь</button>
+            <button type="button" class="dev-secondary" data-roadmap-ai-help>AI-помощник</button>
+            <button type="button" class="dev-secondary" data-roadmap-center>Сетка</button>
+          </div>
+          <div class="dev-roadmap-stats-row">
+            <span class="dev-chip dev-chip-compact">Узлов: ${roadmap.nodes.length}</span>
+            <span class="dev-chip dev-chip-compact">Связей: ${roadmap.edges.length}</span>
+            <span class="dev-chip dev-chip-compact">Шаг сетки: ${ROADMAP_GRID}px</span>
+          </div>
+          <p class="dev-roadmap-connect-hint">${state.pendingConnection ? `Связь: от «${escapeHtml(state.pendingConnection.side)}» узла <strong>${escapeHtml(state.pendingConnection.nodeId)}</strong> — кликни точку на другом блоке.` : 'Связь: кликни синюю точку на первом блоке, затем на втором.'}</p>
+          <div class="dev-roadmap-theme-block">
+            <span class="dev-roadmap-theme-label">Тема превью в обучении</span>
+            <div class="dev-roadmap-theme-switch">
+              ${['white', 'black', 'blue', 'beige'].map((theme) => `
+                <button type="button" class="dev-secondary ${state.roadmapTheme === theme ? 'is-active' : ''}" data-roadmap-theme="${theme}">${theme}</button>
+              `).join('')}
+            </div>
+          </div>
+        </section>
       </div>
     `;
   };
@@ -1104,6 +1103,12 @@
     });
 
     learningEditor.querySelectorAll('[data-canvas-node-id]').forEach((nodeElement) => {
+      nodeElement.addEventListener('contextmenu', (event) => {
+        event.preventDefault();
+        state.selectedRoadmapNodeId = nodeElement.dataset.canvasNodeId;
+        state.selectedSubtaskIndex = null;
+        renderLearningEditor();
+      });
       nodeElement.addEventListener('pointerdown', (event) => {
         if (event.target.closest('[data-connect-node]')) return;
         const nodeId = nodeElement.dataset.canvasNodeId;
@@ -1118,8 +1123,10 @@
 
         const z = state.roadmapCamera.zoom || 1;
         const move = (moveEvent) => {
-          const dx = (moveEvent.clientX - startX) / z;
-          const dy = (moveEvent.clientY - startY) / z;
+          let dx = (moveEvent.clientX - startX) / z;
+          let dy = (moveEvent.clientY - startY) / z;
+          if (moveEvent.shiftKey) dy = 0;
+          if (moveEvent.ctrlKey) dx = 0;
           const nextX = Math.max(0, Math.round((originX + dx) / ROADMAP_GRID) * ROADMAP_GRID);
           const nextY = Math.max(0, Math.round((originY + dy) / ROADMAP_GRID) * ROADMAP_GRID);
           node.position.x = nextX;
@@ -1180,6 +1187,52 @@
           targetSide: 'left'
         });
       });
+    });
+
+    learningEditor.querySelector('[data-roadmap-ai-help]')?.addEventListener('click', async () => {
+      const selectedId = state.selectedRoadmapNodeId;
+      if (!selectedId || !state.selectedEntry) return;
+      const store = getLearningStore();
+      const entry = store[state.selectedEntry];
+      const node = entry?.roadmap?.nodes?.find((item) => item.id === selectedId);
+      if (!node) return;
+      const button = learningEditor.querySelector('[data-roadmap-ai-help]');
+      const previousLabel = button?.textContent;
+      if (button) {
+        button.disabled = true;
+        button.textContent = 'AI думает...';
+      }
+      try {
+        const response = await fetch(apiUrl('/api/ai/roadmap-help'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            profession: state.selectedEntry,
+            nodeLabel: node.data?.label || 'Новый навык',
+            nodeStatus: node.data?.status || 'Draft',
+            currentDescription: node.data?.description || ''
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Не удалось получить AI-подсказку');
+        updateCurrentEntry((draft) => {
+          draft.roadmap = normalizeRoadmap(draft);
+          const target = draft.roadmap.nodes.find((item) => item.id === selectedId);
+          if (!target) return;
+          target.data.description = data.suggestion?.description || target.data.description || '';
+          target.data.freeLinks = data.suggestion?.freeLinks || target.data.freeLinks || '';
+          target.data.articleLinks = data.suggestion?.articleLinks || target.data.articleLinks || '';
+          target.data.plusLinks = data.suggestion?.plusLinks || target.data.plusLinks || '';
+          target.data.practiceText = data.suggestion?.practiceText || target.data.practiceText || '';
+        });
+      } catch {
+        alert('AI-помощник пока недоступен.');
+      } finally {
+        if (button) {
+          button.disabled = false;
+          button.textContent = previousLabel || 'AI-помощник';
+        }
+      }
     });
 
     learningEditor.querySelector('[data-save-selected-node]')?.addEventListener('click', () => {
@@ -1553,6 +1606,15 @@
       field.value = services[field.dataset.serviceToken] || '';
     });
 
+    fetch(apiUrl('/api/admin/ai-config'))
+      .then((response) => response.json())
+      .then((data) => {
+        document.querySelectorAll('[data-ai-config]').forEach((field) => {
+          field.value = data.ai?.[field.dataset.aiConfig] || '';
+        });
+      })
+      .catch(() => {});
+
     const container = document.querySelector('[data-users-editor]');
     if (!container) return;
 
@@ -1604,6 +1666,21 @@
       next[field.dataset.serviceToken] = field.value.trim();
     });
     write(K.services, next);
+    renderProfiles();
+  });
+
+  document.querySelector('[data-save-ai-config]')?.addEventListener('click', async () => {
+    const next = {};
+    document.querySelectorAll('[data-ai-config]').forEach((field) => {
+      next[field.dataset.aiConfig] = field.value.trim();
+    });
+    try {
+      await fetch(apiUrl('/api/admin/ai-config'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(next)
+      });
+    } catch {}
     renderProfiles();
   });
 

@@ -1,0 +1,8 @@
+{
+  "ai": {
+    "provider": "groq",
+    "model": "llama-3.3-70b-versatile",
+    "endpoint": "https://api.groq.com/openai/v1/chat/completions",
+    "apiKey": ""
+  }
+}

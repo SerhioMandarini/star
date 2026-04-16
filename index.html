@@ -50,7 +50,11 @@
   <main>
     <section class="hero-section dark-section">
       <div class="hero-copy">
-        <h1>Структурируй<br>Практикуйся<br>Расти</h1>
+        <h1 class="hero-typing" data-hero-typing>
+          <span data-hero-line="0">Структурируй</span><br>
+          <span data-hero-line="1">Практикуйся</span><br>
+          <span data-hero-line="2">Расти</span>
+        </h1>
         <p class="hero-description">
           Roadstar помогает выстроить понятный маршрут роста: дорожные карты по ролям, практические задания, тесты на грейд, подготовка к собеседованиям и персональные сценарии развития без лишнего шума.
         </p>
@@ -58,7 +62,10 @@
 
       <section class="plain-section section-blue" id="roadmaps">
         <div class="section-heading">
-          <h2>Дорожные карты</h2>
+          <div class="roadmaps-heading-row">
+            <h2>Дорожные карты</h2>
+          </div>
+          <div class="home-progress-panel" data-home-progress-panel hidden></div>
           <p>
             Подробные маршруты входа и роста по профессиям: навыки, инструменты, карьерные шаги, полезные ориентиры и понятная последовательность обучения.
           </p>
@@ -286,5 +293,6 @@
   </template>
 
   <script src="script.js"></script>
+  <script src="home-effects.js"></script>
 </body>
 </html>

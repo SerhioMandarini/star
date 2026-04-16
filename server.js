@@ -30,6 +30,10 @@ const COOKIE_NAME = process.env.COOKIE_NAME || "roadstar_token";
 const COOKIE_SECURE = APP_URL.startsWith("https://");
 const DB_DIR = path.join(__dirname, "data");
 const DB_PATH = path.join(DB_DIR, "roadstar.db");
+const ADMIN_CONFIG_PATH = path.join(DB_DIR, "admin-config.json");
+const DEFAULT_AI_MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+const DEFAULT_AI_PROVIDER = "groq";
+const DEFAULT_GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 fs.mkdirSync(DB_DIR, { recursive: true });
 
@@ -62,6 +66,15 @@ const updateOAuthUserStmt = db.prepare(`
   SET name = ?, provider = ?, provider_id = ?
   WHERE id = ?
 `);
+
+const defaultAdminConfig = {
+  ai: {
+    provider: DEFAULT_AI_PROVIDER,
+    model: DEFAULT_AI_MODEL,
+    apiKey: process.env.GROQ_API_KEY || "",
+    endpoint: process.env.GROQ_API_URL || DEFAULT_GROQ_URL
+  }
+};
 
 app.use(express.json());
 app.use(cookieParser());
@@ -218,6 +231,179 @@ app.get("/api/auth/me", (req, res) => {
   }
 });
 
+app.get("/api/auth/providers", (req, res) => {
+  res.json({
+    providers: {
+      google: hasOAuthConfig("google"),
+      github: hasOAuthConfig("github"),
+      yandex: hasOAuthConfig("yandex")
+    }
+  });
+});
+
+app.get("/api/admin/ai-config", (req, res) => {
+  const config = getAdminConfig();
+  res.json({
+    ai: {
+      provider: config.ai.provider,
+      model: config.ai.model,
+      endpoint: config.ai.endpoint,
+      hasKey: Boolean(config.ai.apiKey)
+    }
+  });
+});
+
+app.post("/api/admin/ai-config", (req, res) => {
+  const current = getAdminConfig();
+  const next = {
+    ...current,
+    ai: {
+      provider: String(req.body?.provider || current.ai.provider || DEFAULT_AI_PROVIDER).trim() || DEFAULT_AI_PROVIDER,
+      model: String(req.body?.model || current.ai.model || DEFAULT_AI_MODEL).trim() || DEFAULT_AI_MODEL,
+      endpoint: String(req.body?.endpoint || current.ai.endpoint || DEFAULT_GROQ_URL).trim() || DEFAULT_GROQ_URL,
+      apiKey: typeof req.body?.apiKey === "string" && req.body.apiKey.trim()
+        ? req.body.apiKey.trim()
+        : current.ai.apiKey || process.env.GROQ_API_KEY || ""
+    }
+  };
+  saveAdminConfig(next);
+  res.json({
+    ok: true,
+    ai: {
+      provider: next.ai.provider,
+      model: next.ai.model,
+      endpoint: next.ai.endpoint,
+      hasKey: Boolean(next.ai.apiKey)
+    }
+  });
+});
+
+app.get("/api/practice/plan", (req, res) => {
+  const profession = String(req.query?.item || req.query?.profession || "").trim();
+  res.json({
+    profession,
+    plan: getPracticePlan(profession)
+  });
+});
+
+app.post("/api/ai/practice/task", async (req, res) => {
+  try {
+    const profession = String(req.body?.profession || "").trim();
+    const stepId = String(req.body?.stepId || "").trim();
+    const plan = getPracticePlan(profession);
+    const step = plan.find((item) => item.id === stepId) || plan[0];
+    const response = await requestAiText([
+      {
+        role: "system",
+        content: "Ты создаешь короткие, понятные практические задания для образовательной платформы. Пиши по-русски. Ответ без вводных фраз."
+      },
+      {
+        role: "user",
+        content: `Профессия: ${profession || "Обучение"}.\nТема: ${step.title}.\nСложность: ${step.level}.\nПлановый фокус: ${step.goal}.\nСгенерируй 1 практическую задачу, критерии проверки и краткую подсказку.`
+      }
+    ], {
+      fallback: `${step.title}\n\nЗадача: ${step.prompt}\n\nКритерий: ${step.success}\n\nПодсказка: ${step.hint}`
+    });
+    res.json({
+      task: response,
+      step
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Не удалось сгенерировать задачу." });
+  }
+});
+
+app.post("/api/ai/practice/check", async (req, res) => {
+  try {
+    const profession = String(req.body?.profession || "").trim();
+    const answer = String(req.body?.answer || "").trim();
+    const task = String(req.body?.task || "").trim();
+    const stepId = String(req.body?.stepId || "").trim();
+    const plan = getPracticePlan(profession);
+    const step = plan.find((item) => item.id === stepId) || plan[0];
+    const fallbackPassed = answer.length >= Math.max(24, Math.floor((step.success || "").length * 0.45));
+    const response = await requestAiJson([
+      {
+        role: "system",
+        content: "Ты проверяешь ответ пользователя на практическую задачу. Верни JSON вида {\"passed\": boolean, \"feedback\": string, \"next\": string}. Пиши по-русски."
+      },
+      {
+        role: "user",
+        content: `Профессия: ${profession || "Обучение"}.\nТема: ${step.title}.\nЗадача:\n${task}\n\nКритерий успеха:\n${step.success}\n\nОтвет пользователя:\n${answer || "(пусто)" }`
+      }
+    ], {
+      passed: fallbackPassed,
+      feedback: fallbackPassed ? "Ответ выглядит достаточно близко к ожидаемому результату." : "Ответ пока не дотягивает до критерия. Попробуй усилить решение и уточнить ход мысли.",
+      next: fallbackPassed ? "Можно переходить к следующей задаче." : "Открой подсказку и попробуй ещё раз."
+    });
+    res.json(response);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Не удалось проверить ответ." });
+  }
+});
+
+app.post("/api/ai/mentor", async (req, res) => {
+  try {
+    const user = getUserFromRequest(req);
+    if (!user || user.plus !== "on") {
+      return res.status(403).json({ error: "ИИ-репетитор доступен только для Plus." });
+    }
+    const profession = String(req.body?.profession || "").trim();
+    const question = String(req.body?.question || "").trim();
+    const context = String(req.body?.context || "").trim();
+    const answer = await requestAiText([
+      {
+        role: "system",
+        content: "Ты ИИ-репетитор платформы Roadstar. Отвечай кратко, по-русски, в контексте обучения и практики пользователя. Если вопрос о карьере или навыках — давай практический ответ."
+      },
+      {
+        role: "user",
+        content: `Профессия: ${profession || "Обучение"}.\nКонтекст прогресса: ${context || "нет данных"}.\nВопрос пользователя: ${question}`
+      }
+    ], {
+      fallback: "Сейчас ИИ-репетитор работает в упрощённом режиме. Попробуй уточнить тему, навык и что именно вызывает сложность."
+    });
+    res.json({ answer });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Не удалось получить ответ ИИ-репетитора." });
+  }
+});
+
+app.post("/api/ai/roadmap-help", async (req, res) => {
+  try {
+    const profession = String(req.body?.profession || "").trim();
+    const nodeLabel = String(req.body?.nodeLabel || "").trim();
+    const nodeStatus = String(req.body?.nodeStatus || "").trim();
+    const currentDescription = String(req.body?.currentDescription || "").trim();
+
+    const fallback = {
+      description: `${nodeLabel}: базовый шаг для профессии ${profession}. Раскрой тему через понятную теорию, затем закрепи её на практике и переходи к следующему узлу.`,
+      freeLinks: "https://developer.mozilla.org MDN\nhttps://roadmap.sh roadmap.sh",
+      articleLinks: `Статья: как применять ${nodeLabel} на практике`,
+      plusLinks: `Plus: разбор темы ${nodeLabel} для ${profession}`,
+      practiceText: `Дай пользователю 1 базовую и 1 усложнённую задачу по теме ${nodeLabel}.`
+    };
+
+    const suggestion = await requestAiJson([
+      {
+        role: "system",
+        content: "Ты помогаешь составлять содержимое узла дорожной карты для карьерного обучения. Возвращай только JSON с полями description, freeLinks, articleLinks, plusLinks, practiceText. freeLinks/articleLinks/plusLinks — строки, где каждый ресурс с новой строки."
+      },
+      {
+        role: "user",
+        content: `Профессия: ${profession}\nУзел: ${nodeLabel}\nСтатус: ${nodeStatus}\nТекущее описание: ${currentDescription || "нет"}\nСделай короткое, практичное и понятное наполнение для этого узла.`
+      }
+    ], fallback);
+
+    res.json({ suggestion: { ...fallback, ...suggestion } });
+  } catch (error) {
+    res.status(500).json({ error: error.message || "Не удалось получить подсказку для дорожной карты." });
+  }
+});
+
 app.get("/api/auth/google", startOAuth("google", { scope: ["profile", "email"] }));
 app.get("/api/auth/github", startOAuth("github", { scope: ["user:email"] }));
 app.get("/api/auth/yandex", startOAuth("yandex"));
@@ -340,4 +526,165 @@ function hasOAuthConfig(strategy) {
     yandex: Boolean(process.env.YANDEX_CLIENT_ID && process.env.YANDEX_CLIENT_SECRET)
   };
   return configMap[strategy];
+}
+
+function readJsonFile(filePath, fallback) {
+  try {
+    if (!fs.existsSync(filePath)) return fallback;
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  } catch {
+    return fallback;
+  }
+}
+
+function writeJsonFile(filePath, value) {
+  fs.writeFileSync(filePath, JSON.stringify(value, null, 2), "utf8");
+}
+
+function getAdminConfig() {
+  const saved = readJsonFile(ADMIN_CONFIG_PATH, {});
+  return {
+    ...defaultAdminConfig,
+    ...saved,
+    ai: {
+      ...defaultAdminConfig.ai,
+      ...(saved.ai || {})
+    }
+  };
+}
+
+function saveAdminConfig(config) {
+  writeJsonFile(ADMIN_CONFIG_PATH, config);
+}
+
+function getPracticePlan(profession) {
+  const name = String(profession || "").toLowerCase();
+  if (name.includes("frontend")) {
+    return [
+      {
+        id: "frontend-html",
+        title: "HTML и семантика",
+        level: "easy",
+        goal: "разобрать структуру страницы и семантические теги",
+        prompt: "Сверстай карточку статьи с заголовком, описанием, списком тегов и кнопкой действия. Учитывай семантические теги.",
+        success: "Есть корректная структура, читаемые теги section/article/header/footer и понятная иерархия.",
+        hint: "Начни с article, header, p и button."
+      },
+      {
+        id: "frontend-js",
+        title: "JavaScript логика",
+        level: "medium",
+        goal: "отработать функции, массивы и события",
+        prompt: "Сделай фильтрацию списка карточек по введённой строке поиска.",
+        success: "Список фильтруется по тексту без перезагрузки страницы, логика вынесена в функцию.",
+        hint: "Используй input event и Array.filter."
+      },
+      {
+        id: "frontend-react",
+        title: "React состояние",
+        level: "hard",
+        goal: "научиться работать с состоянием и композицией компонентов",
+        prompt: "Собери интерфейс задач с фильтрами и статусами через React-компоненты.",
+        success: "Есть отдельные компоненты, состояние поднимается в родителя, UI обновляется без багов.",
+        hint: "Определи структуру TaskList, FilterBar и TaskCard."
+      }
+    ];
+  }
+  if (name.includes("backend") || name.includes("devops")) {
+    return [
+      {
+        id: "backend-api",
+        title: "REST API",
+        level: "easy",
+        goal: "спроектировать простой endpoint и валидацию",
+        prompt: "Опиши и реализуй endpoint создания задачи с валидацией входных данных.",
+        success: "Есть маршрут, проверка обязательных полей и корректный ответ сервера.",
+        hint: "Продумай статусы 200/400 и JSON-ответ."
+      },
+      {
+        id: "backend-db",
+        title: "Работа с данными",
+        level: "medium",
+        goal: "сохранить данные и вернуть нужную структуру",
+        prompt: "Сделай сохранение сущности и выдачу списка с фильтрацией.",
+        success: "Данные сохраняются стабильно, выдача предсказуемая, есть фильтрация.",
+        hint: "Сначала опиши модель данных и контракт API."
+      },
+      {
+        id: "backend-arch",
+        title: "Архитектура сервиса",
+        level: "hard",
+        goal: "разбить логику на слои и подумать о масштабировании",
+        prompt: "Предложи структуру backend-сервиса для команды и опиши, как вынести бизнес-логику из маршрутов.",
+        success: "Есть слои controller/service/repository и понятное разделение ответственности.",
+        hint: "Не смешивай в одном месте HTTP, бизнес-логику и доступ к БД."
+      }
+    ];
+  }
+  return [
+    {
+      id: "general-base",
+      title: "Базовая задача",
+      level: "easy",
+      goal: "проверить понимание ключевой темы профессии",
+      prompt: `Опиши, как бы ты подошёл к типовой задаче по направлению "${profession || "Профессия"}".`,
+      success: "Ответ структурирован, показывает понимание цели, шагов и результата.",
+      hint: "Опиши цель, этапы, риски и критерий успеха."
+    },
+    {
+      id: "general-decision",
+      title: "Рабочий кейс",
+      level: "medium",
+      goal: "разобрать практический сценарий",
+      prompt: "Разбери рабочий кейс: что нужно сделать сначала, как проверить результат и какие риски учесть.",
+      success: "Есть порядок действий, критерии проверки и здравый план решения.",
+      hint: "Начни с диагностики, затем предложи пошаговый план."
+    }
+  ];
+}
+
+async function requestAiText(messages, { fallback = "Скоро будет" } = {}) {
+  const config = getAdminConfig();
+  if (!config.ai.apiKey) return fallback;
+  const response = await fetch(config.ai.endpoint || DEFAULT_GROQ_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${config.ai.apiKey}`
+    },
+    body: JSON.stringify({
+      model: config.ai.model || DEFAULT_AI_MODEL,
+      temperature: 0.5,
+      messages
+    })
+  });
+  if (!response.ok) {
+    return fallback;
+  }
+  const data = await response.json();
+  return data?.choices?.[0]?.message?.content?.trim() || fallback;
+}
+
+async function requestAiJson(messages, fallback) {
+  const text = await requestAiText(messages, {
+    fallback: JSON.stringify(fallback)
+  });
+  try {
+    const match = text.match(/\{[\s\S]*\}/);
+    return JSON.parse(match ? match[0] : text);
+  } catch {
+    return fallback;
+  }
+}
+
+function getUserFromRequest(req) {
+  const token = req.cookies?.[COOKIE_NAME];
+  if (!token) return null;
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    const user = findUserByIdStmt.get(Number(payload.userId));
+    return user ? sanitizeUser(user) : null;
+  } catch {
+    return null;
+  }
 }

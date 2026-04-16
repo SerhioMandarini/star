@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
@@ -52,10 +52,27 @@
           </div>
         </div>
 
-        <div class="learning-progress-card">
-          <span>Прогресс</span>
-          <strong data-learning-progress>0%</strong>
-          <div class="progress-bar"><span data-learning-progress-bar></span></div>
+        <div class="learning-actions-card">
+          <button type="button" class="learning-action-button" data-learning-download>Скачать PDF</button>
+          <button type="button" class="learning-action-button" data-learning-share>Поделиться</button>
+          <p class="learning-action-status" data-learning-action-status hidden></p>
+        </div>
+      </section>
+
+      <section class="learning-progress-strip" data-learning-progress-strip>
+        <div class="learning-progress-head">
+          <span data-learning-progress-label>Прогресс раздела</span>
+          <strong data-learning-progress-value>0%</strong>
+        </div>
+        <div class="learning-progress-unified">
+          <span class="learning-progress-unified-fill" data-learning-progress-fill></span>
+          <div class="learning-progress-unified-marks">
+            <span>0%</span>
+            <span>25%</span>
+            <span>50%</span>
+            <span>75%</span>
+            <span>100%</span>
+          </div>
         </div>
       </section>
 
@@ -79,6 +96,20 @@
       </div>
       <h1 data-auth-title>Регистрация</h1>
       <p data-auth-subtitle>Создайте аккаунт для доступа к профессиям, практике, тестам и карьерным сценариям.</p>
+      <div class="social-auth">
+        <a class="social-button" href="/api/auth/google" data-oauth-button="google">
+          <span class="social-icon" aria-hidden="true">G</span>
+          <span>Google</span>
+        </a>
+        <a class="social-button" href="/api/auth/yandex" data-oauth-button="yandex">
+          <span class="social-icon" aria-hidden="true">Я</span>
+          <span>Yandex</span>
+        </a>
+        <a class="social-button" href="/api/auth/github" data-oauth-button="github">
+          <span class="social-icon" aria-hidden="true">GH</span>
+          <span>GitHub</span>
+        </a>
+      </div>
       <form class="auth-form" data-auth-form>
         <label data-name-field>
           Имя
@@ -109,6 +140,7 @@
         <h2 data-modal-title>Тема</h2>
         <button type="button" class="learning-mentor-btn" data-modal-mentor>ИИ-репетитор</button>
       </div>
+      <strong class="learning-modal-section-title">Описание</strong>
       <p data-modal-text>Скоро будет</p>
       <div class="learning-modal-actions">
         <button type="button" class="learning-practice-btn" data-modal-practice>Открыть практику</button>
@@ -157,7 +189,6 @@
   </section>
 
   <div class="site-overlay" data-site-overlay hidden></div>
-  <script src="script.js"></script>
   <script src="learning-ui.js"></script>
 </body>
 </html>
