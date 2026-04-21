@@ -407,9 +407,17 @@
 
   const updateRoadmapProgressUI = (nodes) => {
     const progress = getRoadmapProgress();
-    const total = Math.max(nodes.length, 1);
-    const done = nodes.filter((node) => progress.completed?.[node.id]).length;
-    const percent = Math.round((done / total) * 100);
+    let total = 0;
+    let done = 0;
+    nodes.forEach((node) => {
+      total++;
+      if (progress.completed?.[node.id]) done++;
+      (node.data?.subTasks || []).forEach((_, i) => {
+        total++;
+        if (progress.completed?.[`${node.id}-sub-${i}`]) done++;
+      });
+    });
+    const percent = total > 0 ? Math.round((done / total) * 100) : 0;
     setSectionProgress('Прогресс дорожной карты', percent);
   };
 
@@ -447,14 +455,41 @@
   };
 
   const edgePath = (start, end, sourceSide, targetSide) => {
-    const offset = 34;
-    const from = { top: { x: start.x, y: start.y - offset }, right: { x: start.x + offset, y: start.y }, bottom: { x: start.x, y: start.y + offset }, left: { x: start.x - offset, y: start.y } }[sourceSide] || { x: start.x + offset, y: start.y };
-    const to = { top: { x: end.x, y: end.y - offset }, right: { x: end.x + offset, y: end.y }, bottom: { x: end.x, y: end.y + offset }, left: { x: end.x - offset, y: end.y } }[targetSide] || { x: end.x - offset, y: end.y };
-    return `M ${start.x} ${start.y} C ${from.x} ${from.y}, ${to.x} ${to.y}, ${end.x} ${end.y}`;
+    const r = 14;
+    const dir = { right: [1, 0], left: [-1, 0], top: [0, -1], bottom: [0, 1] };
+    const [sdx, sdy] = dir[sourceSide] || dir.right;
+    const [tdx, tdy] = dir[targetSide] || dir.left;
+    const gap = 28;
+    const p1 = { x: start.x + sdx * gap, y: start.y + sdy * gap };
+    const p2 = { x: end.x + tdx * gap, y: end.y + tdy * gap };
+    const raw = [start, p1];
+    if (Math.abs(p1.x - p2.x) > 1 && Math.abs(p1.y - p2.y) > 1) {
+      raw.push(sdx !== 0 ? { x: p2.x, y: p1.y } : { x: p1.x, y: p2.y });
+    }
+    raw.push(p2, end);
+    const pts = raw.filter((p, i) => i === 0 || Math.abs(p.x - raw[i - 1].x) > 0.5 || Math.abs(p.y - raw[i - 1].y) > 0.5);
+    const f = (v) => v.toFixed(1);
+    let d = `M ${f(pts[0].x)} ${f(pts[0].y)}`;
+    for (let i = 1; i < pts.length; i++) {
+      const prev = pts[i - 1]; const curr = pts[i]; const next = pts[i + 1];
+      if (!next) { d += ` L ${f(curr.x)} ${f(curr.y)}`; continue; }
+      const dx1 = curr.x - prev.x; const dy1 = curr.y - prev.y; const len1 = Math.sqrt(dx1 * dx1 + dy1 * dy1);
+      const dx2 = next.x - curr.x; const dy2 = next.y - curr.y; const len2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+      const rr = Math.min(r, len1 / 2, len2 / 2);
+      if (rr < 1 || len1 < 0.5 || len2 < 0.5) { d += ` L ${f(curr.x)} ${f(curr.y)}`; continue; }
+      const bx = curr.x - (dx1 / len1) * rr; const by = curr.y - (dy1 / len1) * rr;
+      const ax = curr.x + (dx2 / len2) * rr; const ay = curr.y + (dy2 / len2) * rr;
+      d += ` L ${f(bx)} ${f(by)} Q ${f(curr.x)} ${f(curr.y)} ${f(ax)} ${f(ay)}`;
+    }
+    return d;
   };
 
   const openRoadmapModal = (node) => {
     if (!learningModal) return;
+    const prog = getRoadmapProgress();
+    prog.completed = prog.completed || {};
+    prog.completed[node.id] = true;
+    setRoadmapProgress(prog);
     learningModal.hidden = false;
     learningModal.dataset.activeNode = node.id;
     if (overlay) overlay.hidden = false;
@@ -493,7 +528,7 @@
       if (!source || !target) return '';
       const start = sidePoint(source, edge.sourceSide || 'right');
       const end = sidePoint(target, edge.targetSide || 'left');
-      return `<path class="${edge.animated ? 'is-dashed' : ''}" marker-end="url(#roadmap-arrow)" d="${edgePath(start, end, edge.sourceSide || 'right', edge.targetSide || 'left')}" />`;
+      return `<path class="edge-path${edge.animated ? ' is-dashed' : ''}" marker-end="url(#roadmap-arrow)" d="${edgePath(start, end, edge.sourceSide || 'right', edge.targetSide || 'left')}" />`;
     }).join('');
     const cards = nodes.map((node) => {
       const nodeDone = progress.completed?.[node.id];
@@ -646,13 +681,20 @@
             <button type="button" class="ghost-button" data-practice-refresh>Новая задача</button>
           </div>
           <p>${escapeHtml(taskData.task)}</p>
-          <textarea rows="12" data-practice-answer placeholder="Напиши решение или разбор"></textarea>
-          <div class="practice-compiler">
-            <div class="practice-compiler-head">
-              <strong>Компилятор / запуск</strong>
-              <button type="button" class="ghost-button" data-run-practice-code>Запустить код</button>
+          <div class="practice-code-editor">
+            <div class="practice-code-editor-header">
+              <span class="practice-code-dots"><i></i><i></i><i></i></span>
+              <strong>JavaScript</strong>
+              <button type="button" class="practice-run-btn" data-run-practice-code>▶ Запустить</button>
             </div>
-            <pre class="practice-console" data-practice-console>Здесь появится результат запуска.</pre>
+            <textarea class="practice-code-textarea" data-practice-answer placeholder="// Напиши решение здесь&#10;// console.log('Привет!');" spellcheck="false" autocorrect="off" autocapitalize="off"></textarea>
+          </div>
+          <div class="practice-console-wrap">
+            <div class="practice-console-header">
+              <span>Консоль</span>
+              <button type="button" class="practice-console-clear" data-clear-console title="Очистить">✕</button>
+            </div>
+            <pre class="practice-console" data-practice-console>— нажми Запустить</pre>
           </div>
           <div class="practice-actions">
             <button type="button" class="register-pill" data-check-practice>Оставить ответ</button>
@@ -668,6 +710,16 @@
         setPracticeProgress(next, plan.length);
         renderPracticePanel();
       });
+      panel.querySelector('[data-clear-console]')?.addEventListener('click', () => {
+        const consoleNode = panel.querySelector('[data-practice-console]');
+        if (consoleNode) { consoleNode.textContent = '— нажми Запустить'; consoleNode.className = 'practice-console'; }
+      });
+      const textarea = panel.querySelector('[data-practice-answer]');
+      if (textarea) {
+        textarea.addEventListener('keydown', (e) => {
+          if (e.key === 'Tab') { e.preventDefault(); const s = textarea.selectionStart; const v = textarea.value; textarea.value = v.slice(0, s) + '  ' + v.slice(textarea.selectionEnd); textarea.selectionStart = textarea.selectionEnd = s + 2; }
+        });
+      }
       panel.querySelector('[data-run-practice-code]')?.addEventListener('click', () => {
         const answer = String(panel.querySelector('[data-practice-answer]')?.value || '');
         const consoleNode = panel.querySelector('[data-practice-console]');
@@ -680,11 +732,14 @@
           const runner = new Function('console', `${answer}\nreturn true;`);
           runner({
             log: (...args) => output.push(args.map((item) => typeof item === 'string' ? item : JSON.stringify(item)).join(' ')),
-            error: (...args) => output.push(`ERR: ${args.join(' ')}`)
+            warn: (...args) => output.push(`⚠ ${args.join(' ')}`),
+            error: (...args) => output.push(`✕ ${args.join(' ')}`)
           });
-          consoleNode.textContent = output.length ? output.join('\n') : 'Код выполнен без вывода.';
+          consoleNode.textContent = output.length ? output.join('\n') : '✓ Код выполнен без вывода.';
+          consoleNode.className = output.some((l) => l.startsWith('✕')) ? 'practice-console is-error' : 'practice-console is-ok';
         } catch (error) {
-          consoleNode.textContent = `Ошибка: ${error.message}`;
+          consoleNode.textContent = `✕ ${error.message}`;
+          consoleNode.className = 'practice-console is-error';
         }
       });
       panel.querySelector('[data-check-practice]')?.addEventListener('click', async () => {
@@ -908,6 +963,65 @@
       if (event.target !== modal) return;
       closeAnyLearningOverlay();
     }, true);
+  });
+
+  // Article editor: toolbar, preview, char counter
+  const articleBodyEl = document.querySelector('[data-article-body]');
+  const articlePreviewEl = document.querySelector('[data-article-preview]');
+  const articleCharsEl = document.querySelector('[data-article-chars]');
+
+  const renderArticlePreview = (text) => {
+    if (!articlePreviewEl) return;
+    let html = text
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/`(.+?)`/g, '<code>$1</code>')
+      .replace(/^## (.+)$/gm, '<strong style="font-size:1.1em">$1</strong>')
+      .replace(/^- (.+)$/gm, '• $1');
+    articlePreviewEl.innerHTML = html;
+  };
+
+  if (articleBodyEl) {
+    articleBodyEl.addEventListener('input', () => {
+      const len = articleBodyEl.value.length;
+      if (articleCharsEl) articleCharsEl.textContent = `${len} символов`;
+      if (articlePreviewEl && !articlePreviewEl.hidden) renderArticlePreview(articleBodyEl.value);
+    });
+    articleBodyEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') { e.preventDefault(); const s = articleBodyEl.selectionStart; articleBodyEl.value = articleBodyEl.value.slice(0, s) + '  ' + articleBodyEl.value.slice(articleBodyEl.selectionEnd); articleBodyEl.selectionStart = articleBodyEl.selectionEnd = s + 2; }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'b') { e.preventDefault(); wrapSelection(articleBodyEl, '**', '**'); }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'i') { e.preventDefault(); wrapSelection(articleBodyEl, '*', '*'); }
+    });
+  }
+
+  const wrapSelection = (el, before, after) => {
+    const s = el.selectionStart; const e = el.selectionEnd;
+    const sel = el.value.slice(s, e) || 'текст';
+    el.value = el.value.slice(0, s) + before + sel + after + el.value.slice(e);
+    el.selectionStart = s + before.length; el.selectionEnd = s + before.length + sel.length;
+    el.focus();
+  };
+
+  document.querySelectorAll('[data-format]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (!articleBodyEl) return;
+      const fmt = btn.dataset.format;
+      if (fmt === 'bold') wrapSelection(articleBodyEl, '**', '**');
+      else if (fmt === 'italic') wrapSelection(articleBodyEl, '*', '*');
+      else if (fmt === 'code') wrapSelection(articleBodyEl, '`', '`');
+      else if (fmt === 'h2') { const s = articleBodyEl.selectionStart; articleBodyEl.value = articleBodyEl.value.slice(0, s) + '## ' + articleBodyEl.value.slice(s); articleBodyEl.selectionStart = articleBodyEl.selectionEnd = s + 3; articleBodyEl.focus(); }
+      else if (fmt === 'ul') { const s = articleBodyEl.selectionStart; articleBodyEl.value = articleBodyEl.value.slice(0, s) + '- ' + articleBodyEl.value.slice(s); articleBodyEl.selectionStart = articleBodyEl.selectionEnd = s + 2; articleBodyEl.focus(); }
+    });
+  });
+
+  document.querySelector('[data-article-preview-toggle]')?.addEventListener('click', (e) => {
+    if (!articleBodyEl || !articlePreviewEl) return;
+    const isPreview = !articlePreviewEl.hidden;
+    articlePreviewEl.hidden = isPreview;
+    articleBodyEl.hidden = !isPreview;
+    e.currentTarget.textContent = isPreview ? 'Предпросмотр' : 'Редактировать';
+    if (!isPreview) renderArticlePreview(articleBodyEl.value);
   });
 
   document.querySelector('[data-create-article-form]')?.addEventListener('submit', (event) => {

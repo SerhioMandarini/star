@@ -67,7 +67,6 @@
         <div class="learning-progress-unified">
           <span class="learning-progress-unified-fill" data-learning-progress-fill></span>
           <div class="learning-progress-unified-marks">
-            <span>0%</span>
             <span>25%</span>
             <span>50%</span>
             <span>75%</span>
@@ -176,14 +175,36 @@
   </section>
 
   <section class="modal learning-modal" data-article-create-modal hidden aria-hidden="true">
-    <div class="modal-card learning-content-modal">
+    <div class="modal-card learning-content-modal article-editor-modal">
       <button class="modal-close" type="button" aria-label="Закрыть" data-close-create-article>&times;</button>
-      <h2>Добавить свою статью</h2>
-      <form class="dev-stack" data-create-article-form>
-        <label>Название<input type="text" name="title" required></label>
-        <label>Теги<input type="text" name="tags" placeholder="Например: frontend, react"></label>
-        <label>Текст<textarea rows="10" name="body" required></textarea></label>
-        <button type="submit" class="register-pill">Опубликовать</button>
+      <h2>Новая статья</h2>
+      <form class="dev-stack article-editor-form" data-create-article-form>
+        <div class="article-editor-field">
+          <label class="article-editor-label" for="article-title">Заголовок</label>
+          <input id="article-title" class="article-editor-input" type="text" name="title" placeholder="Напиши заголовок статьи" required>
+        </div>
+        <div class="article-editor-field">
+          <label class="article-editor-label" for="article-tags">Теги</label>
+          <input id="article-tags" class="article-editor-input" type="text" name="tags" placeholder="frontend, react, javascript">
+        </div>
+        <div class="article-editor-field">
+          <label class="article-editor-label" for="article-body">Текст статьи</label>
+          <div class="article-editor-toolbar">
+            <button type="button" class="article-toolbar-btn" data-format="bold" title="Жирный (Ctrl+B)"><b>B</b></button>
+            <button type="button" class="article-toolbar-btn" data-format="italic" title="Курсив (Ctrl+I)"><i>I</i></button>
+            <button type="button" class="article-toolbar-btn" data-format="code" title="Код">&lt;/&gt;</button>
+            <button type="button" class="article-toolbar-btn" data-format="h2" title="Заголовок H2">H2</button>
+            <button type="button" class="article-toolbar-btn" data-format="ul" title="Список">• —</button>
+            <span class="article-toolbar-sep"></span>
+            <button type="button" class="article-toolbar-btn" data-article-preview-toggle>Предпросмотр</button>
+          </div>
+          <textarea id="article-body" class="article-editor-textarea" name="body" placeholder="Поддерживается markdown: **жирный**, *курсив*, `код`, ## Заголовок" required data-article-body></textarea>
+          <div class="article-editor-preview" data-article-preview hidden></div>
+        </div>
+        <div class="article-editor-footer">
+          <span class="article-editor-chars" data-article-chars>0 символов</span>
+          <button type="submit" class="register-pill">Опубликовать</button>
+        </div>
       </form>
     </div>
   </section>

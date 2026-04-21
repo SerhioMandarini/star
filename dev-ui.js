@@ -1011,17 +1011,8 @@
       lines.innerHTML = defs + paths;
     };
 
-    learningEditor.querySelectorAll('[data-select-roadmap-node]').forEach((button) => {
-      button.addEventListener('click', (e) => {
-        if (e.target.closest('.dev-roadmap-canvas-subtask')) return;
-        state.selectedRoadmapNodeId = button.dataset.selectRoadmapNode;
-        state.selectedSubtaskIndex = null;
-        renderLearningEditor();
-      });
-    });
-
     learningEditor.querySelectorAll('[data-dev-roadmap-subtask]').forEach((el) => {
-      el.addEventListener('click', (e) => {
+      el.addEventListener('pointerdown', (e) => {
         e.stopPropagation();
         state.selectedRoadmapNodeId = el.dataset.devRoadmapNode;
         state.selectedSubtaskIndex = Number(el.dataset.devRoadmapSubtask);
@@ -1111,6 +1102,7 @@
       });
       nodeElement.addEventListener('pointerdown', (event) => {
         if (event.target.closest('[data-connect-node]')) return;
+        if (event.target.closest('[data-dev-roadmap-subtask]')) return;
         const nodeId = nodeElement.dataset.canvasNodeId;
         const node = getCanvasNodeData(nodeId);
         if (!node || !canvas) return;
@@ -1120,11 +1112,16 @@
         const originX = Number(node.position?.x || 0);
         const originY = Number(node.position?.y || 0);
         nodeElement.setPointerCapture?.(event.pointerId);
+        let hasMoved = false;
 
         const z = state.roadmapCamera.zoom || 1;
         const move = (moveEvent) => {
-          let dx = (moveEvent.clientX - startX) / z;
-          let dy = (moveEvent.clientY - startY) / z;
+          const rawDx = moveEvent.clientX - startX;
+          const rawDy = moveEvent.clientY - startY;
+          if (!hasMoved && Math.sqrt(rawDx * rawDx + rawDy * rawDy) > 5) hasMoved = true;
+          if (!hasMoved) return;
+          let dx = rawDx / z;
+          let dy = rawDy / z;
           if (moveEvent.shiftKey) dy = 0;
           if (moveEvent.ctrlKey) dx = 0;
           const nextX = Math.max(0, Math.round((originX + dx) / ROADMAP_GRID) * ROADMAP_GRID);
@@ -1138,7 +1135,12 @@
 
         const up = () => {
           document.removeEventListener('pointermove', move);
-          document.removeEventListener('pointerup', up);
+          if (!hasMoved) {
+            state.selectedRoadmapNodeId = nodeId;
+            state.selectedSubtaskIndex = null;
+            renderLearningEditor();
+            return;
+          }
           updateCurrentEntry((entry) => {
             entry.roadmap = normalizeRoadmap(entry);
             const target = entry.roadmap.nodes.find((item) => item.id === nodeId);
@@ -1649,7 +1651,10 @@
     });
   };
 
-  tabs.forEach((tab) => tab.addEventListener('click', () => showPanel(tab.dataset.adminTab)));
+  tabs.forEach((tab) => tab.addEventListener('click', () => {
+    showPanel(tab.dataset.adminTab);
+    if (tab.dataset.adminTab === 'ideas') renderIdeas();
+  }));
   document.querySelector('[data-dev-save-home]')?.addEventListener('click', saveHome);
 
   document.querySelector('[data-save-payment]')?.addEventListener('click', () => {
@@ -1684,9 +1689,47 @@
     renderProfiles();
   });
 
+  const renderIdeas = () => {
+    const list = document.querySelector('[data-ideas-list]');
+    if (!list) return;
+    const ideas = (() => {
+      try {
+        const raw = localStorage.getItem('roadstar-user-ideas');
+        return raw ? JSON.parse(raw) : [];
+      } catch { return []; }
+    })();
+    if (!ideas.length) {
+      list.innerHTML = '<div class="dev-user-card">Пока нет идей от пользователей.</div>';
+      return;
+    }
+    list.innerHTML = ideas.map((idea, i) => `
+      <div class="dev-user-card compact-user-card" style="display:grid;gap:4px;">
+        <span style="font-size:11px;opacity:0.55;">${escapeHtml(idea.date || '')}</span>
+        <strong>${escapeHtml(idea.text || '')}</strong>
+        <div style="margin-top:4px;">
+          <button type="button" class="dev-primary" style="font-size:11px;padding:6px 12px;" data-delete-idea="${i}">Удалить</button>
+        </div>
+      </div>
+    `).join('');
+    list.querySelectorAll('[data-delete-idea]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const idx = Number(btn.dataset.deleteIdea);
+        ideas.splice(idx, 1);
+        localStorage.setItem('roadstar-user-ideas', JSON.stringify(ideas));
+        renderIdeas();
+      });
+    });
+  };
+
+  document.querySelector('[data-clear-ideas]')?.addEventListener('click', () => {
+    localStorage.removeItem('roadstar-user-ideas');
+    renderIdeas();
+  });
+
   renderHome();
   renderLearning();
   renderPayment();
   renderProfiles();
+  renderIdeas();
   showPanel(state.currentTab);
 });

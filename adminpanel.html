@@ -21,6 +21,7 @@
       <button type="button" class="dev-tab" data-admin-tab="payment">Оплата</button>
       <button type="button" class="dev-tab" data-admin-tab="profiles">Профили</button>
       <button type="button" class="dev-tab" data-admin-tab="analytics">Аналитика</button>
+      <button type="button" class="dev-tab" data-admin-tab="ideas">Идеи</button>
     </section>
 
     <section class="dev-panel" style="width:min(1320px,100%);margin:18px auto 0;">
@@ -107,6 +108,14 @@
             <div class="dev-chip">Аналитика</div>
           </div>
           <div class="dev-user-card">Здесь позже будет аналитика по регистрациям, чтению статей, прогрессу и оплатам.</div>
+        </section>
+
+        <section data-admin-panel="ideas" hidden>
+          <div class="dev-toolbar">
+            <div class="dev-chip">Идеи пользователей</div>
+            <button type="button" class="dev-primary" data-clear-ideas>Очистить все</button>
+          </div>
+          <div class="dev-stack" data-ideas-list></div>
         </section>
       </div>
     </section>

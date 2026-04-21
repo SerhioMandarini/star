@@ -13,36 +13,81 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  // --- Hero typing animation ---
+
+  const siteContent = readJson('roadstar-site-content', {});
+  const heroTitle = siteContent.heroTitle || 'Структурируй\nПрактикуйся\nРасти';
+  const fullLines = heroTitle.split('\n').map((s) => s.trim()).filter(Boolean);
+
+  const heroH1 = document.querySelector('.hero-copy h1');
+  if (heroH1) {
+    heroH1.setAttribute('data-hero-typing', '');
+    heroH1.innerHTML = fullLines
+      .map((_, i) => `<span data-hero-line="${i}"></span>`)
+      .join('<br>');
+  }
+
+  const heroLines = Array.from(document.querySelectorAll('[data-hero-line]'));
+  const totalLetters = fullLines.reduce((sum, line) => sum + line.length, 0);
+
+  const getTypingLineIndex = (count) => {
+    let rem = count;
+    for (let i = 0; i < fullLines.length; i++) {
+      if (rem <= fullLines[i].length) return i;
+      rem -= fullLines[i].length;
+    }
+    return fullLines.length - 1;
+  };
+
+  const renderHeroLetters = (limit) => {
+    let counter = 0;
+    const curLine = getTypingLineIndex(Math.min(limit, totalLetters));
+    heroLines.forEach((el, i) => {
+      let text = '';
+      for (const ch of fullLines[i]) {
+        counter++;
+        if (counter <= limit) text += ch;
+      }
+      el.textContent = text;
+      el.classList.toggle('is-typing', i === curLine && limit < totalLetters);
+    });
+  };
+
+  renderHeroLetters(0);
+  let typed = 0;
+  const timer = setInterval(() => {
+    typed++;
+    renderHeroLetters(typed);
+    if (typed >= totalLetters) {
+      clearInterval(timer);
+      heroLines.forEach((el) => el.classList.remove('is-typing'));
+      if (heroH1) heroH1.classList.add('is-finished');
+    }
+  }, 110);
+
+  // --- Progress panel ---
+
   const currentUser = readJson('roadstar-local-session', null);
   const currentUserKey = currentUser?.email || 'guest';
   const roadmapProgress = readJson('roadstar-roadmap-progress-by-user', {});
   const practiceProgress = readJson('roadstar-practice-progress-by-user', {});
   const learningStore = readJson('roadstar-learning-by-item', {});
 
-  const fallbackRoadmapSize = 3;
-
   const getRoadmapNodeTotal = (profession) => {
     const total = learningStore?.[profession]?.roadmap?.nodes?.length;
-    return Number(total || fallbackRoadmapSize);
+    return Number(total || 3);
   };
 
   const getPracticePlanLength = (profession) => {
     const name = String(profession || '').toLowerCase();
-    if (name.includes('frontend')) return 3;
-    if (name.includes('backend') || name.includes('devops')) return 3;
+    if (name.includes('frontend') || name.includes('backend') || name.includes('devops')) return 3;
     return 2;
   };
 
   const getCompletedPracticeSteps = (value) => {
-    if (Array.isArray(value?.completedSteps) && value.completedSteps.length) {
-      return value.completedSteps.length;
-    }
+    if (Array.isArray(value?.completedSteps) && value.completedSteps.length) return value.completedSteps.length;
     if (Array.isArray(value?.history) && value.history.length) {
-      return new Set(
-        value.history
-          .filter((entry) => entry?.passed && entry?.stepId)
-          .map((entry) => entry.stepId)
-      ).size;
+      return new Set(value.history.filter((e) => e?.passed && e?.stepId).map((e) => e.stepId)).size;
     }
     return Number(value?.solved || 0);
   };
@@ -72,78 +117,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
   const topProfessions = Array.from(professionMap.values())
-    .map((entry) => ({
-      ...entry,
-      total: Math.round((entry.roadmap * 0.6) + (entry.practice * 0.4))
-    }))
-    .filter((entry) => entry.total > 0 || entry.roadmap > 0 || entry.practice > 0)
+    .map((e) => ({ ...e, total: Math.round(e.roadmap * 0.6 + e.practice * 0.4) }))
+    .filter((e) => e.total > 0 || e.roadmap > 0 || e.practice > 0)
     .sort((a, b) => b.total - a.total)
     .slice(0, 3);
 
-  const totalPercent = topProfessions[0]?.total || 0;
-
-  const heroLines = Array.from(document.querySelectorAll('[data-hero-line]'));
-  const fullLines = ['Структурируй', 'Практикуйся', 'Расти'];
-  const totalLetters = fullLines.reduce((sum, line) => sum + line.length, 0);
-  const visibleLetters = totalPercent > 0
-    ? Math.max(1, Math.round((totalPercent / 100) * totalLetters))
-    : 1;
-
-  const renderHeroLetters = (limit) => {
-    let counter = 0;
-    heroLines.forEach((line, index) => {
-      const source = fullLines[index];
-      let rendered = '';
-      for (const char of source) {
-        counter += 1;
-        if (counter <= limit) rendered += char;
-      }
-      line.textContent = rendered;
-    });
-  };
-
-  renderHeroLetters(0);
-  let typedLetters = 0;
-  const typingTimer = window.setInterval(() => {
-    typedLetters += 1;
-    renderHeroLetters(typedLetters);
-    if (typedLetters >= visibleLetters) {
-      window.clearInterval(typingTimer);
-    }
-  }, 42);
-
-  const heroTyping = document.querySelector('[data-hero-typing]');
-  if (heroTyping) {
-    window.setTimeout(() => {
-      heroTyping.classList.toggle('is-finished', visibleLetters >= totalLetters);
-    }, Math.max(visibleLetters, 1) * 42);
-  }
-
   const progressPanel = document.querySelector('[data-home-progress-panel]');
-  if (progressPanel) {
+  if (progressPanel && topProfessions.length > 0) {
     progressPanel.hidden = false;
-    progressPanel.innerHTML = topProfessions.length
-      ? topProfessions.map((entry) => `
-        <article class="home-progress-card">
-          <div class="home-progress-card-head">
-            <strong>${entry.profession}</strong>
-            <span>${entry.total}%</span>
-          </div>
-          <div class="home-progress-card-bar"><i style="width:${entry.total}%"></i></div>
-        </article>
-      `).join('')
-      : `
-        <article class="home-progress-card">
-          <div class="home-progress-card-head">
-            <strong>Прогресс ещё не начат</strong>
-            <span>0%</span>
-          </div>
-          <div class="home-progress-card-bar"><i style="width:0%"></i></div>
-        </article>
-      `;
+    progressPanel.innerHTML = topProfessions.map((entry) => `
+      <article class="home-progress-card">
+        <div class="home-progress-card-head">
+          <strong>${entry.profession}</strong>
+          <span>${entry.total}%</span>
+        </div>
+        <div class="home-progress-card-bar"><i style="width:${entry.total}%"></i></div>
+      </article>
+    `).join('');
   }
 
-  const targets = [
+  // --- Scroll reveal ---
+
+  const revealTargets = [
     ...document.querySelectorAll('.plain-section'),
     ...document.querySelectorAll('.updates-section'),
     ...document.querySelectorAll('.roadmap-entry'),
@@ -158,7 +153,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }, { threshold: 0.18 });
 
-  targets.forEach((target) => observer.observe(target));
+  revealTargets.forEach((t) => observer.observe(t));
+
+  // --- OAuth unavailable ---
 
   const bindUnavailableOauth = () => {
     document.querySelectorAll('[data-oauth-button]').forEach((button) => {
@@ -171,15 +168,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!status) return;
         status.textContent = 'Пока нет, скоро будет...';
         clearTimeout(window.__roadstarSoonTimer);
-        window.__roadstarSoonTimer = setTimeout(() => {
-          status.textContent = '';
-        }, 2200);
+        window.__roadstarSoonTimer = setTimeout(() => { status.textContent = ''; }, 2200);
       });
     });
   };
 
   fetch(apiUrl('/api/auth/providers'))
-    .then((response) => response.json())
+    .then((r) => r.json())
     .then((data) => {
       document.querySelectorAll('[data-oauth-button]').forEach((button) => {
         if (data.providers?.[button.dataset.oauthButton]) return;
@@ -192,9 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (!status) return;
           status.textContent = 'Пока нет, скоро будет...';
           clearTimeout(window.__roadstarSoonTimer);
-          window.__roadstarSoonTimer = setTimeout(() => {
-            status.textContent = '';
-          }, 2200);
+          window.__roadstarSoonTimer = setTimeout(() => { status.textContent = ''; }, 2200);
         });
       });
     })
