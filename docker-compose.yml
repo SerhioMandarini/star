@@ -1,0 +1,45 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: roadstar-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/python/Dockerfile
+    container_name: roadstar-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PORT: 3000
+      APP_URL: http://localhost:8080
+      LEGACY_NODE_URL: http://roadstar-node-legacy:3001
+    depends_on:
+      - node-legacy
+    volumes:
+      - roadstar_data:/app/backend/data
+
+  node-legacy:
+    build:
+      context: .
+      dockerfile: backend/node/Dockerfile
+    container_name: roadstar-node-legacy
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PORT: 3001
+      APP_URL: http://localhost:8080
+    volumes:
+      - roadstar_data:/app/backend/node/data
+
+volumes:
+  roadstar_data:

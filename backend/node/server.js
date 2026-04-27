@@ -79,7 +79,7 @@ const defaultAdminConfig = {
 app.use(express.json());
 app.use(cookieParser());
 app.use(passport.initialize());
-app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname, "../../frontend")));
 
 passport.use("google", new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID || "missing-google-client-id",
@@ -413,7 +413,7 @@ app.get("/api/auth/github/callback", finishOAuth("github"));
 app.get("/api/auth/yandex/callback", finishOAuth("yandex"));
 
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "index.html"));
+  res.sendFile(path.join(__dirname, "../../frontend/index.html"));
 });
 
 app.listen(PORT, () => {
