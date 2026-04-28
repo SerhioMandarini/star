@@ -1,43 +1,13 @@
 {
-  "name": "roadstar",
+  "name": "roadstar-monorepo",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "version": "0.1.0",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "start": "node server.js",
-    "server": "node server.js"
-  },
-  "engines": {
-    "node": ">=22.16.0"
-  },
-  "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "clsx": "^2.1.1",
-    "cookie-parser": "^1.4.7",
-    "dotenv": "^16.4.5",
-    "express": "^4.21.0",
-    "jsonwebtoken": "^9.0.2",
-    "lucide-react": "^0.344.0",
-    "passport": "^0.7.0",
-    "passport-github2": "^0.1.12",
-    "passport-google-oauth20": "^2.0.0",
-    "passport-oauth2": "^1.8.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "reactflow": "^11.11.4",
-    "tailwind-merge": "^2.6.1"
-  },
-  "devDependencies": {
-    "@types/react": "^18.2.66",
-    "@types/react-dom": "^18.2.22",
-    "@vitejs/plugin-react": "^4.2.1",
-    "autoprefixer": "^10.4.18",
-    "jsdom": "^29.0.1",
-    "postcss": "^8.4.35",
-    "tailwindcss": "^3.4.1",
-    "vite": "^5.2.2"
+    "frontend:dev": "npm --prefix frontend run dev",
+    "frontend:build": "npm --prefix frontend run build",
+    "backend:legacy": "npm --prefix backend/node run start",
+    "backend:python": "uvicorn backend.python.app.main:app --reload --host 0.0.0.0 --port 3000",
+    "test:python": "python3 -m pytest -q backend/python/tests",
+    "smoke": "python3 backend/python/tests/smoke.py"
   }
 }
