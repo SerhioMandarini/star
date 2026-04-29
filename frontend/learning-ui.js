@@ -79,57 +79,89 @@
     roadmap: {
       nodes: [
         {
-          id: 'intro',
+          id: 'html-css',
           type: 'skillNode',
           data: {
-            label: item,
-            description: 'Базовая дорожная карта загружается как fallback, если на устройстве ещё нет сохранённых данных из админ-панели.',
-            color: '#b6eb24',
-            status: 'Main',
-            freeLinks: 'https://roadstar.local/demo Демо-материал',
-            articleLinks: '',
-            plusLinks: '',
-            practiceEnabled: true,
-            subTasks: []
-          },
-          position: { x: 160, y: 120 }
-        },
-        {
-          id: 'base',
-          type: 'skillNode',
-          data: {
-            label: 'База',
-            description: 'Изучи фундамент, затем переходи к практике и следующему уровню.',
-            color: '#ee463a',
+            label: 'HTML & CSS',
+            description: 'Семантика, адаптивность, современная вёрстка, доступность и работа с layout-системами.',
+            color: '#172554',
             status: 'Core',
-            freeLinks: 'https://developer.mozilla.org MDN',
+            freeLinks: 'https://developer.mozilla.org MDN Web Docs',
             articleLinks: '',
             plusLinks: '',
             practiceEnabled: true,
-            subTasks: []
+            subTasks: [
+              { label: 'Semantic HTML', description: 'Семантические теги и структура документа.' },
+              { label: 'Flexbox & Grid', description: 'Современные системы раскладки.' },
+              { label: 'Responsive UI', description: 'Адаптивный дизайн и медиа-запросы.' }
+            ]
           },
-          position: { x: 480, y: 260 }
+          position: { x: 80, y: 80 }
         },
         {
-          id: 'next',
+          id: 'javascript',
           type: 'skillNode',
           data: {
-            label: 'Следующий шаг',
-            description: 'Переходи к следующему навыку, когда база и практика уверенно пройдены.',
+            label: 'JavaScript Core',
+            description: 'Функции, замыкания, массивы, объекты, асинхронность и DOM API.',
+            color: '#1e293b',
+            status: 'Core',
+            freeLinks: 'https://javascript.info JavaScript.info',
+            articleLinks: '',
+            plusLinks: '',
+            practiceEnabled: true,
+            subTasks: [
+              { label: 'Closures', description: 'Замыкания и область видимости.' },
+              { label: 'Async / Await', description: 'Асинхронный код и промисы.' },
+              { label: 'DOM Events', description: 'Работа с событиями браузера.' }
+            ]
+          },
+          position: { x: 420, y: 80 }
+        },
+        {
+          id: 'react',
+          type: 'skillNode',
+          data: {
+            label: 'React',
+            description: 'Компоненты, состояние, эффекты, роутинг и композиция UI на современном React.',
             color: '#0f766e',
+            status: 'Build',
+            freeLinks: 'https://react.dev React Docs',
+            articleLinks: '',
+            plusLinks: '',
+            practiceEnabled: true,
+            subTasks: [
+              { label: 'Hooks', description: 'useState, useEffect, useCallback и другие.' },
+              { label: 'State flow', description: 'Управление состоянием приложения.' },
+              { label: 'Routing', description: 'React Router и навигация.' }
+            ]
+          },
+          position: { x: 760, y: 80 }
+        },
+        {
+          id: 'tooling',
+          type: 'skillNode',
+          data: {
+            label: 'Tooling',
+            description: 'Сборщики, линтеры, форматтеры и рабочая среда разработчика.',
+            color: '#312e81',
             status: 'Next',
-            freeLinks: '',
+            freeLinks: 'https://vitejs.dev Vite',
             articleLinks: '',
             plusLinks: '',
             practiceEnabled: false,
-            subTasks: []
+            subTasks: [
+              { label: 'Vite / Webpack', description: 'Сборка и горячая замена модулей.' },
+              { label: 'ESLint & Prettier', description: 'Качество и форматирование кода.' }
+            ]
           },
-          position: { x: 820, y: 120 }
+          position: { x: 420, y: 340 }
         }
       ],
       edges: [
-        { id: 'e1', source: 'intro', target: 'base', sourceSide: 'right', targetSide: 'left', type: 'smoothstep', animated: true },
-        { id: 'e2', source: 'base', target: 'next', sourceSide: 'right', targetSide: 'left', type: 'smoothstep', animated: true }
+        { id: 'e1', source: 'html-css', target: 'javascript', sourceSide: 'right', targetSide: 'left', type: 'smoothstep', animated: true },
+        { id: 'e2', source: 'javascript', target: 'react', sourceSide: 'right', targetSide: 'left', type: 'smoothstep', animated: true },
+        { id: 'e3', source: 'javascript', target: 'tooling', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: true }
       ]
     }
   });
@@ -442,46 +474,31 @@
     if (overlay) overlay.hidden = true;
   };
 
+  const NODE_W = 196;
+  const NODE_H = 74;
+
   const sidePoint = (node, side) => {
     const x = Number(node.position?.x || 0);
     const y = Number(node.position?.y || 0);
-    const width = 192;
-    const subTasks = Array.isArray(node.data?.subTasks) ? Math.min(node.data.subTasks.length, 4) : 0;
-    const height = 58 + (subTasks ? subTasks * 34 + 8 : 0);
-    if (side === 'top') return { x: x + width / 2, y };
-    if (side === 'bottom') return { x: x + width / 2, y: y + height };
-    if (side === 'left') return { x, y: y + height / 2 };
-    return { x: x + width, y: y + height / 2 };
+    if (side === 'top')    return { x: x + NODE_W / 2, y };
+    if (side === 'bottom') return { x: x + NODE_W / 2, y: y + NODE_H };
+    if (side === 'left')   return { x,          y: y + NODE_H / 2 };
+    /* right */            return { x: x + NODE_W, y: y + NODE_H / 2 };
   };
 
   const edgePath = (start, end, sourceSide, targetSide) => {
-    const r = 14;
-    const dir = { right: [1, 0], left: [-1, 0], top: [0, -1], bottom: [0, 1] };
+    const dir = { right: [1,0], left: [-1,0], top: [0,-1], bottom: [0,1] };
     const [sdx, sdy] = dir[sourceSide] || dir.right;
     const [tdx, tdy] = dir[targetSide] || dir.left;
-    const gap = 28;
-    const p1 = { x: start.x + sdx * gap, y: start.y + sdy * gap };
-    const p2 = { x: end.x + tdx * gap, y: end.y + tdy * gap };
-    const raw = [start, p1];
-    if (Math.abs(p1.x - p2.x) > 1 && Math.abs(p1.y - p2.y) > 1) {
-      raw.push(sdx !== 0 ? { x: p2.x, y: p1.y } : { x: p1.x, y: p2.y });
-    }
-    raw.push(p2, end);
-    const pts = raw.filter((p, i) => i === 0 || Math.abs(p.x - raw[i - 1].x) > 0.5 || Math.abs(p.y - raw[i - 1].y) > 0.5);
-    const f = (v) => v.toFixed(1);
-    let d = `M ${f(pts[0].x)} ${f(pts[0].y)}`;
-    for (let i = 1; i < pts.length; i++) {
-      const prev = pts[i - 1]; const curr = pts[i]; const next = pts[i + 1];
-      if (!next) { d += ` L ${f(curr.x)} ${f(curr.y)}`; continue; }
-      const dx1 = curr.x - prev.x; const dy1 = curr.y - prev.y; const len1 = Math.sqrt(dx1 * dx1 + dy1 * dy1);
-      const dx2 = next.x - curr.x; const dy2 = next.y - curr.y; const len2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
-      const rr = Math.min(r, len1 / 2, len2 / 2);
-      if (rr < 1 || len1 < 0.5 || len2 < 0.5) { d += ` L ${f(curr.x)} ${f(curr.y)}`; continue; }
-      const bx = curr.x - (dx1 / len1) * rr; const by = curr.y - (dy1 / len1) * rr;
-      const ax = curr.x + (dx2 / len2) * rr; const ay = curr.y + (dy2 / len2) * rr;
-      d += ` L ${f(bx)} ${f(by)} Q ${f(curr.x)} ${f(curr.y)} ${f(ax)} ${f(ay)}`;
-    }
-    return d;
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const c = Math.min(Math.max(dist * 0.45, 40), 160);
+    const cp1x = start.x + sdx * c;
+    const cp1y = start.y + sdy * c;
+    const cp2x = end.x + tdx * c;
+    const cp2y = end.y + tdy * c;
+    return `M ${start.x} ${start.y} C ${cp1x} ${cp1y} ${cp2x} ${cp2y} ${end.x} ${end.y}`;
   };
 
   const openRoadmapModal = (node) => {
@@ -519,8 +536,9 @@
     const nodes = entry.roadmap.nodes;
     const edges = entry.roadmap.edges || [];
     const progress = getRoadmapProgress();
-    const width = Math.max(...nodes.map((node) => Number(node.position?.x || 0) + 260), Math.max(window.innerWidth - 80, 960));
-    const height = Math.max(...nodes.map((node) => Number(node.position?.y || 0) + 200), 620);
+    const PAD = 32;
+    const width = Math.max(...nodes.map((node) => Number(node.position?.x || 0) + NODE_W + PAD + 60), Math.max(window.innerWidth - 80, 960));
+    const height = Math.max(...nodes.map((node) => Number(node.position?.y || 0) + NODE_H + PAD + 60), 520);
     const byId = Object.fromEntries(nodes.map((node) => [node.id, node]));
     const lines = edges.map((edge) => {
       const source = byId[edge.source];
@@ -532,13 +550,9 @@
     }).join('');
     const cards = nodes.map((node) => {
       const nodeDone = progress.completed?.[node.id];
-      const subtasks = (node.data?.subTasks || []).slice(0, 4).map((item, subIndex) => `
-        <button type="button" class="roadmap-flow-subtask" data-roadmap-node="${escapeHtml(node.id)}" data-roadmap-subtask="${subIndex}">${escapeHtml(item.label || item)}</button>
-      `).join('');
       return `
-        <article class="roadmap-flow-node ${nodeDone ? 'is-done' : ''}" data-roadmap-node="${escapeHtml(node.id)}" tabindex="0" style="left:${Number(node.position?.x || 0)}px; top:${Number(node.position?.y || 0)}px; border-color:${escapeHtml(node.data?.color || '#d9d9d9')}; background:${escapeHtml(node.data?.color || '#d9d9d9')};">
-          <div class="roadmap-flow-node-head"><strong>${escapeHtml(node.data?.label || 'Без названия')}</strong></div>
-          ${subtasks ? `<div class="roadmap-flow-node-subtasks">${subtasks}</div>` : ''}
+        <article class="roadmap-flow-node ${nodeDone ? 'is-done' : ''}" data-roadmap-node="${escapeHtml(node.id)}" tabindex="0" style="left:${Number(node.position?.x || 0)}px; top:${Number(node.position?.y || 0)}px; background:${escapeHtml(node.data?.color || '#18212f')};">
+          <strong class="roadmap-flow-node-title">${escapeHtml(node.data?.label || 'Без названия')}</strong>
         </article>
       `;
     }).join('');
@@ -547,7 +561,7 @@
         <svg class="learning-roadmap-lines" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
           <defs>
             <marker id="roadmap-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-              <path d="M 0 0 L 10 5 L 0 10 z" fill="#2d7cff"></path>
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#22d3ee"></path>
             </marker>
           </defs>
           ${lines}
