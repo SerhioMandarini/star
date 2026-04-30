@@ -72,104 +72,85 @@
     tokens: user.tokens
   });
 
-  const fallbackLearningEntry = (item) => ({
-    practice: '',
-    grade: '',
-    interview: '',
-    roadmap: {
+  const LEARNING_SEEDS = {
+    'Frontend Developer': {
       nodes: [
-        {
-          id: 'html-css',
-          type: 'skillNode',
-          data: {
-            label: 'HTML & CSS',
-            description: 'Семантика, адаптивность, современная вёрстка, доступность и работа с layout-системами.',
-            color: '#172554',
-            status: 'Core',
-            freeLinks: 'https://developer.mozilla.org MDN Web Docs',
-            articleLinks: '',
-            plusLinks: '',
-            practiceEnabled: true,
-            subTasks: [
-              { label: 'Semantic HTML', description: 'Семантические теги и структура документа.' },
-              { label: 'Flexbox & Grid', description: 'Современные системы раскладки.' },
-              { label: 'Responsive UI', description: 'Адаптивный дизайн и медиа-запросы.' }
-            ]
-          },
-          position: { x: 80, y: 80 }
-        },
-        {
-          id: 'javascript',
-          type: 'skillNode',
-          data: {
-            label: 'JavaScript Core',
-            description: 'Функции, замыкания, массивы, объекты, асинхронность и DOM API.',
-            color: '#1e293b',
-            status: 'Core',
-            freeLinks: 'https://javascript.info JavaScript.info',
-            articleLinks: '',
-            plusLinks: '',
-            practiceEnabled: true,
-            subTasks: [
-              { label: 'Closures', description: 'Замыкания и область видимости.' },
-              { label: 'Async / Await', description: 'Асинхронный код и промисы.' },
-              { label: 'DOM Events', description: 'Работа с событиями браузера.' }
-            ]
-          },
-          position: { x: 420, y: 80 }
-        },
-        {
-          id: 'react',
-          type: 'skillNode',
-          data: {
-            label: 'React',
-            description: 'Компоненты, состояние, эффекты, роутинг и композиция UI на современном React.',
-            color: '#0f766e',
-            status: 'Build',
-            freeLinks: 'https://react.dev React Docs',
-            articleLinks: '',
-            plusLinks: '',
-            practiceEnabled: true,
-            subTasks: [
-              { label: 'Hooks', description: 'useState, useEffect, useCallback и другие.' },
-              { label: 'State flow', description: 'Управление состоянием приложения.' },
-              { label: 'Routing', description: 'React Router и навигация.' }
-            ]
-          },
-          position: { x: 760, y: 80 }
-        },
-        {
-          id: 'tooling',
-          type: 'skillNode',
-          data: {
-            label: 'Tooling',
-            description: 'Сборщики, линтеры, форматтеры и рабочая среда разработчика.',
-            color: '#312e81',
-            status: 'Next',
-            freeLinks: 'https://vitejs.dev Vite',
-            articleLinks: '',
-            plusLinks: '',
-            practiceEnabled: false,
-            subTasks: [
-              { label: 'Vite / Webpack', description: 'Сборка и горячая замена модулей.' },
-              { label: 'ESLint & Prettier', description: 'Качество и форматирование кода.' }
-            ]
-          },
-          position: { x: 420, y: 340 }
-        }
+        { id: 'internet', type: 'skillNode', position: { x: 360, y: 40 }, data: { label: 'Интернет', description: 'Как работает интернет, HTTP/HTTPS, DNS, браузеры и основы клиент-серверного взаимодействия.', color: '#6366f1', status: 'Core', freeLinks: 'https://developer.mozilla.org/ru/docs/Learn/Common_questions/How_does_the_Internet_work MDN: Как работает интернет\nhttps://roadmap.sh/guides/what-is-internet roadmap.sh', articleLinks: 'Статья: HTTP простыми словами\nСтатья: DNS — от запроса до ответа', plusLinks: 'Plus: шпаргалка по сетевым протоколам\nPlus: HTTP vs HTTPS — разбор', practiceEnabled: true, practiceText: 'Объясни своими словами, что происходит, когда ты вводишь URL в браузер. Нарисуй схему.' } },
+        { id: 'html', type: 'skillNode', position: { x: 60, y: 200 }, data: { label: 'HTML', description: 'Семантическая разметка, формы, таблицы, мета-теги, доступность и базовая SEO-структура.', color: '#ef4444', status: 'Core', freeLinks: 'https://developer.mozilla.org/ru/docs/Web/HTML MDN HTML\nhttps://html.spec.whatwg.org Спецификация HTML', articleLinks: 'Статья: семантические теги — зачем они нужны\nСтатья: доступные формы (ARIA + HTML)', plusLinks: 'Plus: чек-лист ревью HTML-разметки\nPlus: типичные ошибки новичков', practiceEnabled: true, practiceText: 'Сверстай страницу профиля пользователя: шапка, аватар, описание, форма обратной связи — только HTML.' } },
+        { id: 'css', type: 'skillNode', position: { x: 360, y: 200 }, data: { label: 'CSS', description: 'Блочная модель, Flexbox, Grid, адаптивность, CSS-переменные, анимации и псевдоэлементы.', color: '#3b82f6', status: 'Core', freeLinks: 'https://developer.mozilla.org/ru/docs/Web/CSS MDN CSS\nhttps://css-tricks.com CSS-Tricks', articleLinks: 'Статья: Flexbox за 30 минут\nСтатья: CSS Grid — полное руководство', plusLinks: 'Plus: верстка по макету (Figma → CSS)\nPlus: CSS-анимации и переходы', practiceEnabled: true, practiceText: 'Сделай адаптивную карточку товара: изображение, заголовок, цена, кнопка — Flexbox и медиазапросы.' } },
+        { id: 'javascript', type: 'skillNode', position: { x: 660, y: 200 }, data: { label: 'JavaScript', description: 'Синтаксис ES6+, DOM, события, замыкания, прототипы, Promise, async/await и модули.', color: '#f59e0b', status: 'Core', freeLinks: 'https://javascript.info javascript.info\nhttps://developer.mozilla.org/ru/docs/Web/JavaScript MDN JS', articleLinks: 'Статья: event loop — как работает JS\nСтатья: Promise и async/await', plusLinks: 'Plus: карта закрепления JS Core\nPlus: 50 задач на JavaScript', practiceEnabled: true, practiceText: 'Напиши функцию debounce(fn, delay) на JS с примером использования.' } },
+        { id: 'git', type: 'skillNode', position: { x: 60, y: 360 }, data: { label: 'Git', description: 'Ветки, коммиты, merge, rebase, stash, pull requests и работа с GitHub/GitLab.', color: '#10b981', status: 'Core', freeLinks: 'https://git-scm.com/doc Документация Git\nhttps://learngitbranching.js.org Learn Git Branching', articleLinks: 'Статья: Git за 30 минут\nСтатья: Git flow vs trunk-based', plusLinks: 'Plus: шпаргалка по Git-командам\nPlus: разбор конфликтов при merge', practiceEnabled: true, practiceText: 'Создай репозиторий, сделай feature-ветку, реши конфликт при слиянии и опиши каждый шаг.' } },
+        { id: 'pkg-managers', type: 'skillNode', position: { x: 360, y: 360 }, data: { label: 'Пакетные менеджеры', description: 'npm, yarn, pnpm: установка зависимостей, package.json, версионирование и скрипты.', color: '#8b5cf6', status: 'Core', freeLinks: 'https://docs.npmjs.com Документация npm\nhttps://yarnpkg.com Yarn', articleLinks: 'Статья: npm vs yarn vs pnpm\nСтатья: package.json от А до Я', plusLinks: 'Plus: управление зависимостями в монорепо\nPlus: безопасность npm-пакетов', practiceEnabled: true, practiceText: 'Инициализируй проект, добавь несколько зависимостей и напиши кастомный скрипт в package.json.' } },
+        { id: 'build-tools', type: 'skillNode', position: { x: 660, y: 360 }, data: { label: 'Инструменты сборки', description: 'Vite и Webpack: бандлинг, минификация, tree-shaking, hot reload и конфигурация.', color: '#f97316', status: 'Core', freeLinks: 'https://vitejs.dev Vite\nhttps://webpack.js.org Webpack', articleLinks: 'Статья: Vite vs Webpack — что выбрать\nСтатья: tree-shaking — как убрать лишнее', plusLinks: 'Plus: настройка Vite с нуля\nPlus: оптимизация бандла', practiceEnabled: true, practiceText: 'Настрой Vite-проект с React, добавь алиасы путей и раздели dev/prod конфигурацию.' } },
+        { id: 'css-arch', type: 'skillNode', position: { x: 60, y: 520 }, data: { label: 'CSS Архитектура', description: 'BEM, OOCSS, Atomic CSS — методологии организации стилей в масштабируемых проектах.', color: '#06b6d4', status: 'Main', freeLinks: 'https://getbem.com BEM\nhttps://tailwindcss.com Tailwind CSS', articleLinks: 'Статья: BEM за 15 минут\nСтатья: Tailwind — утилитарный подход', plusLinks: 'Plus: переход с BEM на Tailwind\nPlus: CSS-in-JS vs utility-first', practiceEnabled: true, practiceText: 'Перепиши компонент карточки с произвольных классов на BEM-нотацию.' } },
+        { id: 'css-preproc', type: 'skillNode', position: { x: 360, y: 520 }, data: { label: 'CSS Препроцессоры', description: 'Sass/SCSS: переменные, вложенность, миксины, функции и работа с темами.', color: '#ec4899', status: 'Main', freeLinks: 'https://sass-lang.com Sass\nhttps://lesscss.org Less', articleLinks: 'Статья: Sass — от основ до продвинутых\nСтатья: CSS-переменные vs Sass-переменные', plusLinks: 'Plus: организация SCSS в большом проекте\nPlus: тёмная тема через CSS-переменные', practiceEnabled: true, practiceText: 'Напиши SCSS для системы токенов (цвета, отступы, типографика) с поддержкой светлой и тёмной темы.' } },
+        { id: 'typescript', type: 'skillNode', position: { x: 660, y: 520 }, data: { label: 'TypeScript', description: 'Типы, интерфейсы, generics, utility types и интеграция с React и инструментами сборки.', color: '#2563eb', status: 'Core', freeLinks: 'https://www.typescriptlang.org/docs TypeScript Docs\nhttps://typescript-exercises.github.io TypeScript Exercises', articleLinks: 'Статья: TypeScript за 1 час\nСтатья: generics — когда и зачем', plusLinks: 'Plus: TypeScript в реальном проекте\nPlus: строгие типы и паттерны', practiceEnabled: true, practiceText: 'Типизируй функцию fetch-обёртки с generics: fetchData<T>(url: string): Promise<T>.' } },
+        { id: 'react', type: 'skillNode', position: { x: 60, y: 680 }, data: { label: 'React', description: 'Компоненты, хуки (useState, useEffect, useRef, useMemo), JSX, маршрутизация (React Router) и формы.', color: '#0ea5e9', status: 'Core', freeLinks: 'https://react.dev React Docs\nhttps://reactrouter.com React Router', articleLinks: 'Статья: как мыслить компонентами\nСтатья: useEffect — подводные камни', plusLinks: 'Plus: архитектура React-приложения\nPlus: разбор pet-проекта', practiceEnabled: true, practiceText: 'Создай компонент TodoList с добавлением, удалением и фильтрацией задач на React + TypeScript.' } },
+        { id: 'state-mgmt', type: 'skillNode', position: { x: 360, y: 680 }, data: { label: 'Управление состоянием', description: 'Redux Toolkit, Zustand, Jotai, Context API — паттерны и выбор инструмента под задачу.', color: '#7c3aed', status: 'Main', freeLinks: 'https://zustand-demo.pmnd.rs Zustand\nhttps://redux-toolkit.js.org Redux Toolkit', articleLinks: 'Статья: Zustand vs Redux — что выбрать\nСтатья: Context API — когда хватит', plusLinks: 'Plus: стейт-менеджмент в большом SPA\nPlus: серверное состояние (React Query)', practiceEnabled: true, practiceText: 'Реализуй корзину покупок с Zustand: добавление, удаление, подсчёт суммы.' } },
+        { id: 'testing', type: 'skillNode', position: { x: 660, y: 680 }, data: { label: 'Тестирование', description: 'Unit-тесты (Jest/Vitest), компонентные тесты (Testing Library), E2E (Playwright/Cypress).', color: '#16a34a', status: 'Core', freeLinks: 'https://vitest.dev Vitest\nhttps://testing-library.com Testing Library', articleLinks: 'Статья: пирамида тестирования\nСтатья: Testing Library — правильные запросы', plusLinks: 'Plus: покрытие кода тестами\nPlus: E2E в CI/CD', practiceEnabled: true, practiceText: 'Напиши тесты для компонента LoginForm: валидация полей, сабмит, ошибка авторизации.' } },
+        { id: 'security', type: 'skillNode', position: { x: 60, y: 840 }, data: { label: 'Веб-безопасность', description: 'XSS, CSRF, CSP, CORS, HTTPS, безопасное хранение данных и безопасные практики кода.', color: '#dc2626', status: 'Main', freeLinks: 'https://owasp.org OWASP\nhttps://developer.mozilla.org/ru/docs/Web/Security MDN Security', articleLinks: 'Статья: XSS — что это и как защититься\nСтатья: CSRF-атаки и токены', plusLinks: 'Plus: аудит безопасности фронтенда\nPlus: Content Security Policy', practiceEnabled: true, practiceText: 'Найди и исправь XSS-уязвимость в примере кода. Опиши, как правильно экранировать ввод пользователя.' } },
+        { id: 'performance', type: 'skillNode', position: { x: 360, y: 840 }, data: { label: 'Производительность', description: 'Core Web Vitals, lazy loading, оптимизация рендера, кеширование, code splitting и профилирование.', color: '#d97706', status: 'Main', freeLinks: 'https://web.dev/performance web.dev\nhttps://pagespeed.web.dev PageSpeed Insights', articleLinks: 'Статья: Core Web Vitals — что важно знать\nСтатья: code splitting в React', plusLinks: 'Plus: аудит производительности реального сайта\nPlus: React Profiler и оптимизация', practiceEnabled: true, practiceText: 'Проанализируй страницу в Lighthouse, найди 3 проблемы и предложи решения для каждой.' } },
+        { id: 'accessibility', type: 'skillNode', position: { x: 660, y: 840 }, data: { label: 'Доступность', description: 'WCAG 2.1, ARIA-атрибуты, навигация с клавиатуры, контрастность и поддержка скрин-ридеров.', color: '#9333ea', status: 'Main', freeLinks: 'https://www.w3.org/WAI/WCAG21 WCAG\nhttps://developer.mozilla.org/ru/docs/Web/Accessibility MDN A11y', articleLinks: 'Статья: доступность для начинающих\nСтатья: ARIA — когда использовать', plusLinks: 'Plus: аудит доступности с axe\nPlus: скрин-ридеры на практике', practiceEnabled: true, practiceText: 'Добавь полную поддержку клавиатурной навигации и ARIA к кастомному select-компоненту.' } },
+        { id: 'cicd', type: 'skillNode', position: { x: 360, y: 1000 }, data: { label: 'CI/CD', description: 'GitHub Actions, автодеплой на Vercel/Netlify, линтеры, тесты и проверки в пайплайне.', color: '#0891b2', status: 'Core', freeLinks: 'https://docs.github.com/actions GitHub Actions\nhttps://vercel.com Vercel', articleLinks: 'Статья: CI/CD для фронтенда\nСтатья: GitHub Actions за 20 минут', plusLinks: 'Plus: полный пайплайн для React-приложения\nPlus: деплой с env-секретами', practiceEnabled: true, practiceText: 'Настрой GitHub Actions: lint + test при каждом push, автодеплой на Vercel при merge в main.' } }
       ],
       edges: [
-        { id: 'e1', source: 'html-css', target: 'javascript', sourceSide: 'right', targetSide: 'left', type: 'smoothstep', animated: true },
-        { id: 'e2', source: 'javascript', target: 'react', sourceSide: 'right', targetSide: 'left', type: 'smoothstep', animated: true },
-        { id: 'e3', source: 'javascript', target: 'tooling', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: true }
+        { id: 'e-internet-html', source: 'internet', target: 'html', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-internet-css', source: 'internet', target: 'css', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-internet-js', source: 'internet', target: 'javascript', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-html-git', source: 'html', target: 'git', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-css-pkg', source: 'css', target: 'pkg-managers', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-js-build', source: 'javascript', target: 'build-tools', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-git-cssarch', source: 'git', target: 'css-arch', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-pkg-csspreproc', source: 'pkg-managers', target: 'css-preproc', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-build-ts', source: 'build-tools', target: 'typescript', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-cssarch-react', source: 'css-arch', target: 'react', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-csspreproc-state', source: 'css-preproc', target: 'state-mgmt', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-ts-testing', source: 'typescript', target: 'testing', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-react-security', source: 'react', target: 'security', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-state-perf', source: 'state-mgmt', target: 'performance', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-testing-access', source: 'testing', target: 'accessibility', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-security-cicd', source: 'security', target: 'cicd', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-perf-cicd', source: 'performance', target: 'cicd', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-access-cicd', source: 'accessibility', target: 'cicd', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false }
       ]
     }
-  });
+  };
+
+  const fallbackLearningEntry = (item) => {
+    const seed = LEARNING_SEEDS[item];
+    return {
+      practice: '',
+      grade: '',
+      interview: '',
+      roadmap: seed || {
+        nodes: [
+          { id: 'html-css', type: 'skillNode', data: { label: 'HTML & CSS', description: 'Семантика, адаптивность, современная вёрстка, доступность и работа с layout-системами.', color: '#2563eb', status: 'Core', freeLinks: 'https://developer.mozilla.org MDN Web Docs', articleLinks: '', plusLinks: '', practiceEnabled: true }, position: { x: 80, y: 80 } },
+          { id: 'javascript', type: 'skillNode', data: { label: 'JavaScript Core', description: 'Функции, замыкания, массивы, объекты, асинхронность и DOM API.', color: '#7c3aed', status: 'Core', freeLinks: 'https://javascript.info JavaScript.info', articleLinks: '', plusLinks: '', practiceEnabled: true }, position: { x: 420, y: 80 } },
+          { id: 'react', type: 'skillNode', data: { label: 'React', description: 'Компоненты, состояние, эффекты, роутинг и композиция UI на современном React.', color: '#0f766e', status: 'Main', freeLinks: 'https://react.dev React Docs', articleLinks: '', plusLinks: '', practiceEnabled: true }, position: { x: 760, y: 80 } },
+          { id: 'tooling', type: 'skillNode', data: { label: 'Tooling', description: 'Сборщики, линтеры, форматтеры и рабочая среда разработчика.', color: '#312e81', status: 'Main', freeLinks: 'https://vitejs.dev Vite', articleLinks: '', plusLinks: '', practiceEnabled: false }, position: { x: 420, y: 260 } }
+        ],
+        edges: [
+          { id: 'e1', source: 'html-css', target: 'javascript', sourceSide: 'right', targetSide: 'left', type: 'smoothstep', animated: false, secondary: false },
+          { id: 'e2', source: 'javascript', target: 'react', sourceSide: 'right', targetSide: 'left', type: 'smoothstep', animated: false, secondary: false },
+          { id: 'e3', source: 'javascript', target: 'tooling', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false }
+        ]
+      }
+    };
+  };
 
   const getLearningEntry = () => {
     const item = currentItem();
     const store = readJson('roadstar-learning-by-item', {});
-    return store[item] || fallbackLearningEntry(item);
+    const saved = store[item];
+    if (saved && saved.roadmap && Array.isArray(saved.roadmap.nodes) && saved.roadmap.nodes.length > 0) {
+      return saved;
+    }
+    const entry = fallbackLearningEntry(item);
+    // Persist seed so admin panel stays in sync
+    if (!saved) {
+      try { localStorage.setItem('roadstar-learning-by-item', JSON.stringify({ ...store, [item]: entry })); } catch { /* ignore */ }
+    }
+    return entry;
   };
 
   const formatMultiLine = (value) => {
@@ -446,7 +427,7 @@
     const total = Array.isArray(roadmapNodes) ? roadmapNodes.length : 0;
 
     const done = Array.isArray(roadmapNodes)
-      ? roadmapNodes.filter((node) => progress.completed?.[node.id]).length
+      ? roadmapNodes.filter((node) => getNodeStatus(node.id) === 'done').length
       : 0;
 
     try {
@@ -515,12 +496,42 @@
     return `M ${start.x} ${start.y} C ${cp1x} ${cp1y} ${cp2x} ${cp2y} ${end.x} ${end.y}`;
   };
 
+  // 3-state node status helpers
+  const getNodeStatus = (nodeId) => {
+    const prog = getRoadmapProgress();
+    return (prog.nodeStatus || {})[nodeId] || 'notStarted';
+  };
+  const setNodeStatus = (nodeId, status) => {
+    const prog = getRoadmapProgress();
+    prog.nodeStatus = prog.nodeStatus || {};
+    prog.nodeStatus[nodeId] = status;
+    // keep legacy completed map in sync
+    prog.completed = prog.completed || {};
+    if (status === 'done') prog.completed[nodeId] = true;
+    else delete prog.completed[nodeId];
+    setRoadmapProgress(prog);
+  };
+  const isCorNode = (node) => {
+    const s = String(node.data?.status || '').toLowerCase();
+    return s === 'main' || s === 'core';
+  };
+  const NODE_STATUS_COLORS = {
+    notStarted: { core: '#f59e0b', secondary: '#fde68a' },
+    inProgress:  { core: '#3b82f6', secondary: '#93c5fd' },
+    done:        { core: '#6b7280', secondary: '#d1d5db' }
+  };
+  const nodeStatusColor = (node) => {
+    const s = getNodeStatus(node.id);
+    const tier = isCorNode(node) ? 'core' : 'secondary';
+    return NODE_STATUS_COLORS[s]?.[tier] || NODE_STATUS_COLORS.notStarted.core;
+  };
+
   const openRoadmapModal = (node) => {
     if (!learningModal) return;
-    const prog = getRoadmapProgress();
-    prog.completed = prog.completed || {};
-    prog.completed[node.id] = true;
-    setRoadmapProgress(prog);
+    // Set inProgress only if not already done
+    if (getNodeStatus(node.id) === 'notStarted') {
+      setNodeStatus(node.id, 'inProgress');
+    }
     learningModal.hidden = false;
     learningModal.dataset.activeNode = node.id;
     if (overlay) overlay.hidden = false;
@@ -541,6 +552,29 @@
         closeLearningModalWithoutReload();
       };
     }
+    // "Выполнено!" button
+    let doneBtn = learningModal.querySelector('[data-modal-done]');
+    if (!doneBtn) {
+      doneBtn = document.createElement('button');
+      doneBtn.type = 'button';
+      doneBtn.dataset.modalDone = '';
+      doneBtn.className = 'register-pill modal-done-btn';
+      // insert before the close button area or at end of actions
+      const actions = learningModal.querySelector('.modal-actions') || learningModal.querySelector('[data-modal-practice]')?.parentElement || learningModal;
+      actions.appendChild(doneBtn);
+    }
+    const updateDoneBtn = () => {
+      const st = getNodeStatus(node.id);
+      doneBtn.textContent = st === 'done' ? '✓ Выполнено' : 'Выполнено !';
+      doneBtn.style.background = st === 'done' ? '#6b7280' : '';
+      doneBtn.disabled = st === 'done';
+    };
+    updateDoneBtn();
+    doneBtn.onclick = () => {
+      setNodeStatus(node.id, 'done');
+      updateDoneBtn();
+      renderRoadmapBoard();
+    };
   };
 
   const renderRoadmapBoard = () => {
@@ -560,13 +594,16 @@
       if (!source || !target) return '';
       const start = sidePoint(source, edge.sourceSide || 'right');
       const end = sidePoint(target, edge.targetSide || 'left');
-      return `<path class="edge-path${edge.animated ? ' is-dashed' : ''}" marker-end="url(#roadmap-arrow)" d="${edgePath(start, end, edge.sourceSide || 'right', edge.targetSide || 'left')}" />`;
+      const cls = edge.secondary ? 'edge-path is-dashed' : 'edge-path';
+      return `<path class="${cls}" marker-end="url(#roadmap-arrow)" d="${edgePath(start, end, edge.sourceSide || 'right', edge.targetSide || 'left')}" />`;
     }).join('');
     const cards = nodes.map((node) => {
-      const nodeDone = progress.completed?.[node.id];
+      const st = getNodeStatus(node.id);
+      const bg = nodeStatusColor(node);
       return `
-        <article class="roadmap-flow-node ${nodeDone ? 'is-done' : ''}" data-roadmap-node="${escapeHtml(node.id)}" tabindex="0" style="left:${Number(node.position?.x || 0)}px; top:${Number(node.position?.y || 0)}px; background:${escapeHtml(node.data?.color || '#18212f')};">
+        <article class="roadmap-flow-node node-status-${st}" data-roadmap-node="${escapeHtml(node.id)}" tabindex="0" style="left:${Number(node.position?.x || 0)}px; top:${Number(node.position?.y || 0)}px; background:${bg};">
           <strong class="roadmap-flow-node-title">${escapeHtml(node.data?.label || 'Без названия')}</strong>
+          <span class="roadmap-flow-node-status">${st === 'done' ? '✓' : st === 'inProgress' ? '◌' : ''}</span>
         </article>
       `;
     }).join('');
@@ -593,25 +630,6 @@
           event.preventDefault();
           open();
         }
-      });
-    });
-    panel.querySelectorAll('[data-roadmap-subtask]').forEach((button) => {
-      button.addEventListener('click', (event) => {
-        event.stopPropagation();
-        const node = byId[button.dataset.roadmapNode];
-        const subtask = node?.data?.subTasks?.[Number(button.dataset.roadmapSubtask)];
-        if (!subtask) return;
-        openRoadmapModal({
-          id: `${node.id}-sub-${button.dataset.roadmapSubtask}`,
-          data: {
-            label: subtask.label,
-            description: subtask.description,
-            freeLinks: subtask.freeLinks,
-            articleLinks: subtask.articleLinks,
-            plusLinks: subtask.plusLinks,
-            practiceEnabled: subtask.practiceEnabled
-          }
-        });
       });
     });
     updateRoadmapProgressUI(nodes);

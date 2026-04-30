@@ -57,31 +57,6 @@
   const getUsers = () => read(K.users, []);
   const getLearningStore = () => read(K.learningByItem, {});
 
-  const normalizeSubTask = (subTask, index = 0) => {
-    if (typeof subTask === 'string') {
-      return {
-        id: `subtask-${index + 1}`,
-        label: subTask,
-        description: '',
-        freeLinks: '',
-        articleLinks: '',
-        plusLinks: '',
-        practiceEnabled: false,
-        practiceText: ''
-      };
-    }
-    return {
-      id: subTask?.id || `subtask-${index + 1}`,
-      label: subTask?.label || 'Новый подпункт',
-      description: subTask?.description || '',
-      freeLinks: subTask?.freeLinks || '',
-      articleLinks: subTask?.articleLinks || '',
-      plusLinks: subTask?.plusLinks || '',
-      practiceEnabled: Boolean(subTask?.practiceEnabled),
-      practiceText: subTask?.practiceText || ''
-    };
-  };
-
   const createDefaultRoadmap = () => ({
     settings: {
       isDevModeDefault: true,
@@ -101,12 +76,7 @@
           freeLinks: 'MDN HTML, MDN CSS',
           articleLinks: 'Статья: семантическая вёрстка',
           plusLinks: 'Plus: чек-лист ревью вёрстки',
-          practiceEnabled: true,
-          subTasks: [
-            normalizeSubTask({ label: 'Семантика', description: 'Изучи структуру документа и правильные теги.' }, 0),
-            normalizeSubTask({ label: 'Flexbox и Grid', description: 'Освой две основные системы раскладки.' }, 1),
-            normalizeSubTask({ label: 'Адаптив', description: 'Подготовь интерфейс под мобильные и планшеты.' }, 2)
-          ]
+          practiceEnabled: true
         },
         position: { x: 80, y: 80 }
       },
@@ -121,12 +91,7 @@
           freeLinks: 'javascript.info, MDN',
           articleLinks: 'Статья: event loop простыми словами',
           plusLinks: 'Plus: карта закрепления JS Core',
-          practiceEnabled: true,
-          subTasks: [
-            normalizeSubTask({ label: 'Функции', description: 'Повтори declaration, expression и стрелочные функции.' }, 0),
-            normalizeSubTask({ label: 'DOM', description: 'Разбери работу с деревом документа и событиями.' }, 1),
-            normalizeSubTask({ label: 'Async', description: 'Пойми Promise, async/await и event loop.' }, 2)
-          ]
+          practiceEnabled: true
         },
         position: { x: 380, y: 200 }
       },
@@ -141,12 +106,7 @@
           freeLinks: 'react.dev',
           articleLinks: 'Статья: как мыслить компонентами',
           plusLinks: 'Plus: разбор pet-проекта',
-          practiceEnabled: true,
-          subTasks: [
-            normalizeSubTask({ label: 'Компоненты', description: 'Переиспользование интерфейсов через композицию.' }, 0),
-            normalizeSubTask({ label: 'State', description: 'Локальное состояние и поток данных.' }, 1),
-            normalizeSubTask({ label: 'Routing', description: 'Структура приложения и переходы между экранами.' }, 2)
-          ]
+          practiceEnabled: true
         },
         position: { x: 700, y: 80 }
       }
@@ -156,6 +116,51 @@
       { id: 'edge-js-react', source: 'js-core', target: 'react', sourceSide: 'right', targetSide: 'left', type: 'smoothstep', animated: true }
     ]
   });
+
+  const PROFESSION_SEEDS = {
+    'Frontend Developer': {
+      settings: { isDevModeDefault: true, panOnScroll: true, selectionOnDrag: true, fitView: true },
+      nodes: [
+        { id: 'internet', type: 'skillNode', position: { x: 360, y: 40 }, data: { label: 'Интернет', description: 'Как работает интернет, HTTP/HTTPS, DNS, браузеры и основы клиент-серверного взаимодействия.', color: '#6366f1', status: 'Core', freeLinks: 'https://developer.mozilla.org/ru/docs/Learn/Common_questions/How_does_the_Internet_work MDN: Как работает интернет\nhttps://roadmap.sh/guides/what-is-internet roadmap.sh', articleLinks: 'Статья: HTTP простыми словами\nСтатья: DNS — от запроса до ответа', plusLinks: 'Plus: шпаргалка по сетевым протоколам\nPlus: HTTP vs HTTPS — разбор', practiceEnabled: true, practiceText: 'Объясни своими словами, что происходит, когда ты вводишь URL в браузер. Нарисуй схему.' } },
+        { id: 'html', type: 'skillNode', position: { x: 60, y: 200 }, data: { label: 'HTML', description: 'Семантическая разметка, формы, таблицы, мета-теги, доступность и базовая SEO-структура.', color: '#ef4444', status: 'Core', freeLinks: 'https://developer.mozilla.org/ru/docs/Web/HTML MDN HTML\nhttps://html.spec.whatwg.org Спецификация HTML', articleLinks: 'Статья: семантические теги — зачем они нужны\nСтатья: доступные формы (ARIA + HTML)', plusLinks: 'Plus: чек-лист ревью HTML-разметки\nPlus: типичные ошибки новичков', practiceEnabled: true, practiceText: 'Сверстай страницу профиля пользователя: шапка, аватар, описание, форма обратной связи — только HTML.' } },
+        { id: 'css', type: 'skillNode', position: { x: 360, y: 200 }, data: { label: 'CSS', description: 'Блочная модель, Flexbox, Grid, адаптивность, CSS-переменные, анимации и псевдоэлементы.', color: '#3b82f6', status: 'Core', freeLinks: 'https://developer.mozilla.org/ru/docs/Web/CSS MDN CSS\nhttps://css-tricks.com CSS-Tricks', articleLinks: 'Статья: Flexbox за 30 минут\nСтатья: CSS Grid — полное руководство', plusLinks: 'Plus: верстка по макету (Figma → CSS)\nPlus: CSS-анимации и переходы', practiceEnabled: true, practiceText: 'Сделай адаптивную карточку товара: изображение, заголовок, цена, кнопка — Flexbox и медиазапросы.' } },
+        { id: 'javascript', type: 'skillNode', position: { x: 660, y: 200 }, data: { label: 'JavaScript', description: 'Синтаксис ES6+, DOM, события, замыкания, прототипы, Promise, async/await и модули.', color: '#f59e0b', status: 'Core', freeLinks: 'https://javascript.info javascript.info\nhttps://developer.mozilla.org/ru/docs/Web/JavaScript MDN JS', articleLinks: 'Статья: event loop — как работает JS\nСтатья: Promise и async/await', plusLinks: 'Plus: карта закрепления JS Core\nPlus: 50 задач на JavaScript', practiceEnabled: true, practiceText: 'Напиши функцию debounce(fn, delay) на JS с примером использования.' } },
+        { id: 'git', type: 'skillNode', position: { x: 60, y: 360 }, data: { label: 'Git', description: 'Ветки, коммиты, merge, rebase, stash, pull requests и работа с GitHub/GitLab.', color: '#10b981', status: 'Core', freeLinks: 'https://git-scm.com/doc Документация Git\nhttps://learngitbranching.js.org Learn Git Branching', articleLinks: 'Статья: Git за 30 минут\nСтатья: Git flow vs trunk-based', plusLinks: 'Plus: шпаргалка по Git-командам\nPlus: разбор конфликтов при merge', practiceEnabled: true, practiceText: 'Создай репозиторий, сделай feature-ветку, реши конфликт при слиянии и опиши каждый шаг.' } },
+        { id: 'pkg-managers', type: 'skillNode', position: { x: 360, y: 360 }, data: { label: 'Пакетные менеджеры', description: 'npm, yarn, pnpm: установка зависимостей, package.json, версионирование и скрипты.', color: '#8b5cf6', status: 'Core', freeLinks: 'https://docs.npmjs.com Документация npm\nhttps://yarnpkg.com Yarn', articleLinks: 'Статья: npm vs yarn vs pnpm\nСтатья: package.json от А до Я', plusLinks: 'Plus: управление зависимостями в монорепо\nPlus: безопасность npm-пакетов', practiceEnabled: true, practiceText: 'Инициализируй проект, добавь несколько зависимостей и напиши кастомный скрипт в package.json.' } },
+        { id: 'build-tools', type: 'skillNode', position: { x: 660, y: 360 }, data: { label: 'Инструменты сборки', description: 'Vite и Webpack: бандлинг, минификация, tree-shaking, hot reload и конфигурация.', color: '#f97316', status: 'Core', freeLinks: 'https://vitejs.dev Vite\nhttps://webpack.js.org Webpack', articleLinks: 'Статья: Vite vs Webpack — что выбрать\nСтатья: tree-shaking — как убрать лишнее', plusLinks: 'Plus: настройка Vite с нуля\nPlus: оптимизация бандла', practiceEnabled: true, practiceText: 'Настрой Vite-проект с React, добавь алиасы путей и раздели dev/prod конфигурацию.' } },
+        { id: 'css-arch', type: 'skillNode', position: { x: 60, y: 520 }, data: { label: 'CSS Архитектура', description: 'BEM, OOCSS, Atomic CSS — методологии организации стилей в масштабируемых проектах.', color: '#06b6d4', status: 'Main', freeLinks: 'https://getbem.com BEM\nhttps://tailwindcss.com Tailwind CSS', articleLinks: 'Статья: BEM за 15 минут\nСтатья: Tailwind — утилитарный подход', plusLinks: 'Plus: переход с BEM на Tailwind\nPlus: CSS-in-JS vs utility-first', practiceEnabled: true, practiceText: 'Перепиши компонент карточки с произвольных классов на BEM-нотацию.' } },
+        { id: 'css-preproc', type: 'skillNode', position: { x: 360, y: 520 }, data: { label: 'CSS Препроцессоры', description: 'Sass/SCSS: переменные, вложенность, миксины, функции и работа с темами.', color: '#ec4899', status: 'Main', freeLinks: 'https://sass-lang.com Sass\nhttps://lesscss.org Less', articleLinks: 'Статья: Sass — от основ до продвинутых\nСтатья: CSS-переменные vs Sass-переменные', plusLinks: 'Plus: организация SCSS в большом проекте\nPlus: тёмная тема через CSS-переменные', practiceEnabled: true, practiceText: 'Напиши SCSS для системы токенов (цвета, отступы, типографика) с поддержкой светлой и тёмной темы.' } },
+        { id: 'typescript', type: 'skillNode', position: { x: 660, y: 520 }, data: { label: 'TypeScript', description: 'Типы, интерфейсы, generics, utility types и интеграция с React и инструментами сборки.', color: '#2563eb', status: 'Core', freeLinks: 'https://www.typescriptlang.org/docs TypeScript Docs\nhttps://typescript-exercises.github.io TypeScript Exercises', articleLinks: 'Статья: TypeScript за 1 час\nСтатья: generics — когда и зачем', plusLinks: 'Plus: TypeScript в реальном проекте\nPlus: строгие типы и паттерны', practiceEnabled: true, practiceText: 'Типизируй функцию fetch-обёртки с generics: fetchData<T>(url: string): Promise<T>.' } },
+        { id: 'react', type: 'skillNode', position: { x: 60, y: 680 }, data: { label: 'React', description: 'Компоненты, хуки (useState, useEffect, useRef, useMemo), JSX, маршрутизация (React Router) и формы.', color: '#0ea5e9', status: 'Core', freeLinks: 'https://react.dev React Docs\nhttps://reactrouter.com React Router', articleLinks: 'Статья: как мыслить компонентами\nСтатья: useEffect — подводные камни', plusLinks: 'Plus: архитектура React-приложения\nPlus: разбор pet-проекта', practiceEnabled: true, practiceText: 'Создай компонент TodoList с добавлением, удалением и фильтрацией задач на React + TypeScript.' } },
+        { id: 'state-mgmt', type: 'skillNode', position: { x: 360, y: 680 }, data: { label: 'Управление состоянием', description: 'Redux Toolkit, Zustand, Jotai, Context API — паттерны и выбор инструмента под задачу.', color: '#7c3aed', status: 'Main', freeLinks: 'https://zustand-demo.pmnd.rs Zustand\nhttps://redux-toolkit.js.org Redux Toolkit', articleLinks: 'Статья: Zustand vs Redux — что выбрать\nСтатья: Context API — когда хватит', plusLinks: 'Plus: стейт-менеджмент в большом SPA\nPlus: серверное состояние (React Query)', practiceEnabled: true, practiceText: 'Реализуй корзину покупок с Zustand: добавление, удаление, подсчёт суммы.' } },
+        { id: 'testing', type: 'skillNode', position: { x: 660, y: 680 }, data: { label: 'Тестирование', description: 'Unit-тесты (Jest/Vitest), компонентные тесты (Testing Library), E2E (Playwright/Cypress).', color: '#16a34a', status: 'Core', freeLinks: 'https://vitest.dev Vitest\nhttps://testing-library.com Testing Library', articleLinks: 'Статья: пирамида тестирования\nСтатья: Testing Library — правильные запросы', plusLinks: 'Plus: покрытие кода тестами\nPlus: E2E в CI/CD', practiceEnabled: true, practiceText: 'Напиши тесты для компонента LoginForm: валидация полей, сабмит, ошибка авторизации.' } },
+        { id: 'security', type: 'skillNode', position: { x: 60, y: 840 }, data: { label: 'Веб-безопасность', description: 'XSS, CSRF, CSP, CORS, HTTPS, безопасное хранение данных и безопасные практики кода.', color: '#dc2626', status: 'Main', freeLinks: 'https://owasp.org OWASP\nhttps://developer.mozilla.org/ru/docs/Web/Security MDN Security', articleLinks: 'Статья: XSS — что это и как защититься\nСтатья: CSRF-атаки и токены', plusLinks: 'Plus: аудит безопасности фронтенда\nPlus: Content Security Policy', practiceEnabled: true, practiceText: 'Найди и исправь XSS-уязвимость в примере кода. Опиши, как правильно экранировать ввод пользователя.' } },
+        { id: 'performance', type: 'skillNode', position: { x: 360, y: 840 }, data: { label: 'Производительность', description: 'Core Web Vitals, lazy loading, оптимизация рендера, кеширование, code splitting и профилирование.', color: '#d97706', status: 'Main', freeLinks: 'https://web.dev/performance web.dev\nhttps://pagespeed.web.dev PageSpeed Insights', articleLinks: 'Статья: Core Web Vitals — что важно знать\nСтатья: code splitting в React', plusLinks: 'Plus: аудит производительности реального сайта\nPlus: React Profiler и оптимизация', practiceEnabled: true, practiceText: 'Проанализируй страницу в Lighthouse, найди 3 проблемы и предложи решения для каждой.' } },
+        { id: 'accessibility', type: 'skillNode', position: { x: 660, y: 840 }, data: { label: 'Доступность', description: 'WCAG 2.1, ARIA-атрибуты, навигация с клавиатуры, контрастность и поддержка скрин-ридеров.', color: '#9333ea', status: 'Main', freeLinks: 'https://www.w3.org/WAI/WCAG21 WCAG\nhttps://developer.mozilla.org/ru/docs/Web/Accessibility MDN A11y', articleLinks: 'Статья: доступность для начинающих\nСтатья: ARIA — когда использовать', plusLinks: 'Plus: аудит доступности с axe\nPlus: скрин-ридеры на практике', practiceEnabled: true, practiceText: 'Добавь полную поддержку клавиатурной навигации и ARIA к кастомному select-компоненту.' } },
+        { id: 'cicd', type: 'skillNode', position: { x: 360, y: 1000 }, data: { label: 'CI/CD', description: 'GitHub Actions, автодеплой на Vercel/Netlify, линтеры, тесты и проверки в пайплайне.', color: '#0891b2', status: 'Core', freeLinks: 'https://docs.github.com/actions GitHub Actions\nhttps://vercel.com Vercel', articleLinks: 'Статья: CI/CD для фронтенда\nСтатья: GitHub Actions за 20 минут', plusLinks: 'Plus: полный пайплайн для React-приложения\nPlus: деплой с env-секретами', practiceEnabled: true, practiceText: 'Настрой GitHub Actions: lint + test при каждом push, автодеплой на Vercel при merge в main.' } }
+      ],
+      edges: [
+        { id: 'e-internet-html', source: 'internet', target: 'html', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-internet-css', source: 'internet', target: 'css', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-internet-js', source: 'internet', target: 'javascript', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-html-git', source: 'html', target: 'git', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-css-pkg', source: 'css', target: 'pkg-managers', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-js-build', source: 'javascript', target: 'build-tools', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-git-cssarch', source: 'git', target: 'css-arch', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-pkg-csspreproc', source: 'pkg-managers', target: 'css-preproc', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-build-ts', source: 'build-tools', target: 'typescript', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-cssarch-react', source: 'css-arch', target: 'react', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-csspreproc-state', source: 'css-preproc', target: 'state-mgmt', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-ts-testing', source: 'typescript', target: 'testing', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-react-security', source: 'react', target: 'security', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-state-perf', source: 'state-mgmt', target: 'performance', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-testing-access', source: 'testing', target: 'accessibility', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-security-cicd', source: 'security', target: 'cicd', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-perf-cicd', source: 'performance', target: 'cicd', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false },
+        { id: 'e-access-cicd', source: 'accessibility', target: 'cicd', sourceSide: 'bottom', targetSide: 'top', type: 'smoothstep', animated: false, secondary: false }
+      ]
+    }
+  };
 
   const normalizeRoadmap = (entry = {}) => {
     const fallback = createDefaultRoadmap();
@@ -167,8 +172,7 @@
               ...node,
               data: {
                 ...node.data,
-                practiceEnabled: Boolean(node.data?.practiceEnabled),
-                subTasks: (node.data?.subTasks || []).map((subTask, subIndex) => normalizeSubTask(subTask, subIndex))
+                practiceEnabled: Boolean(node.data?.practiceEnabled)
               }
             }))
           : fallback.nodes,
@@ -180,7 +184,8 @@
               sourceSide: edge.sourceSide || 'right',
               targetSide: edge.targetSide || 'left',
               type: edge.type || 'smoothstep',
-              animated: edge.animated !== false
+              animated: edge.animated !== false,
+              secondary: Boolean(edge.secondary)
             }))
           : fallback.edges
       };
@@ -191,8 +196,12 @@
   const ensureProfessionData = (name) => {
     const store = getLearningStore();
     const current = store[name] || {};
+    // Use profession seed when roadmap not yet defined
+    const hasSavedRoadmap = current.roadmap && typeof current.roadmap === 'object' && Array.isArray(current.roadmap.nodes) && current.roadmap.nodes.length > 0;
+    const seed = PROFESSION_SEEDS[name];
+    const roadmapSource = hasSavedRoadmap ? current : (seed ? { roadmap: seed } : current);
     const next = {
-      roadmap: normalizeRoadmap(current),
+      roadmap: normalizeRoadmap(roadmapSource),
       practice: current.practice || '',
       grade: current.grade || '',
       interview: current.interview || ''
@@ -219,8 +228,7 @@
         articleLinks: '',
         plusLinks: '',
         practiceEnabled: false,
-        practiceText: '',
-        subTasks: []
+        practiceText: ''
       },
       position: { x: bx, y: by }
     };
@@ -233,7 +241,8 @@
     sourceSide: 'right',
     targetSide: 'left',
     type: 'smoothstep',
-    animated: true
+    animated: true,
+    secondary: false
   });
 
   const tabs = Array.from(document.querySelectorAll('[data-admin-tab]'));
@@ -249,7 +258,6 @@
     selectedEntry: null,
     selectedSection: 'roadmap',
     selectedRoadmapNodeId: null,
-    selectedSubtaskIndex: null,
     pendingConnection: null,
     roadmapTheme: 'white',
     roadmapCamera: { x: 80, y: 64, zoom: 0.85 },
@@ -538,7 +546,7 @@
       if (!source || !target) return '';
       const start = sidePoint(source, edge.sourceSide || 'right');
       const end = sidePoint(target, edge.targetSide || 'left');
-      return `<path class="${edge.animated ? 'is-dashed' : ''}" marker-end="url(#dev-roadmap-arrow)" d="${edgePath(start, end, edge.sourceSide || 'right', edge.targetSide || 'left')}" />`;
+      return `<path class="${edge.secondary ? 'is-dashed' : ''}" marker-end="url(#dev-roadmap-arrow)" d="${edgePath(start, end, edge.sourceSide || 'right', edge.targetSide || 'left')}" />`;
     }).join('');
 
     const swatches = ['#2563eb', '#7c3aed', '#0f766e', '#dc2626', '#ea580c', '#d97706', '#64748b', '#111827', '#ec4899', '#14b8a6'];
@@ -547,11 +555,6 @@
     `).join('');
 
     const previewNodes = roadmap.nodes.map((node) => {
-      const subTasks = (node.data?.subTasks || []).slice(0, 4).map((st, i) => `
-        <div class="dev-roadmap-canvas-subtask" data-dev-roadmap-node="${escapeAttr(node.id)}" data-dev-roadmap-subtask="${i}">
-          ${escapeHtml(st.label || 'Подпункт ' + (i + 1))}
-        </div>
-      `).join('');
       return `
         <article
           class="dev-roadmap-canvas-node ${state.selectedRoadmapNodeId === node.id ? 'is-selected' : ''}"
@@ -565,7 +568,6 @@
           <button type="button" class="dev-roadmap-canvas-handle left ${state.pendingConnection?.nodeId === node.id && state.pendingConnection?.side === 'left' ? 'is-active' : ''}" data-connect-node="${escapeAttr(node.id)}" data-connect-side="left" aria-label="Соединить слева"></button>
           <strong>${escapeHtml(node.data?.label || 'Новый навык')}</strong>
           <span>${escapeHtml(node.data?.status || 'Draft')}</span>
-          ${subTasks ? `<div class="dev-roadmap-canvas-subtasks">${subTasks}</div>` : ''}
         </article>
       `;
     }).join('');
@@ -603,28 +605,12 @@
               <option value="left" ${edge.targetSide === 'left' ? 'selected' : ''}>Лево</option>
             </select>
           </label>
-        </div>
-      </article>
-    `).join('');
-
-    const subTasks = (selectedNode?.data?.subTasks || []).map((subTask, index) => `
-      <article class="dev-roadmap-subtask-card">
-        <div class="dev-roadmap-item-head">
-          <h4>Подпункт ${index + 1}</h4>
-          <button type="button" class="dev-secondary danger" data-remove-subtask="${index}">Удалить</button>
-        </div>
-        <div class="dev-roadmap-grid">
-          <label>Название<input type="text" value="${escapeAttr(subTask.label || '')}" data-selected-subtask-field="label" data-selected-subtask-index="${index}"></label>
-          <label>Практика
-            <select data-selected-subtask-field="practiceEnabled" data-selected-subtask-index="${index}">
-              <option value="false" ${!subTask.practiceEnabled ? 'selected' : ''}>Нет</option>
-              <option value="true" ${subTask.practiceEnabled ? 'selected' : ''}>Да</option>
+          <label>Тип линии
+            <select data-edge-field="secondary" data-edge-index="${index}">
+              <option value="false" ${!edge.secondary ? 'selected' : ''}>Основная (сплошная)</option>
+              <option value="true" ${edge.secondary ? 'selected' : ''}>Побочная (пунктир)</option>
             </select>
           </label>
-          <label class="dev-roadmap-grid-wide">Описание<textarea rows="3" data-selected-subtask-field="description" data-selected-subtask-index="${index}">${escapeHtml(subTask.description || '')}</textarea></label>
-          <label class="dev-roadmap-grid-wide">Полезные ссылки<textarea rows="2" data-selected-subtask-field="freeLinks" data-selected-subtask-index="${index}">${escapeHtml(subTask.freeLinks || '')}</textarea></label>
-          <label class="dev-roadmap-grid-wide">Статьи<textarea rows="2" data-selected-subtask-field="articleLinks" data-selected-subtask-index="${index}">${escapeHtml(subTask.articleLinks || '')}</textarea></label>
-          <label class="dev-roadmap-grid-wide">Ресурсы plus<textarea rows="2" data-selected-subtask-field="plusLinks" data-selected-subtask-index="${index}">${escapeHtml(subTask.plusLinks || '')}</textarea></label>
         </div>
       </article>
     `).join('');
@@ -637,7 +623,7 @@
             ${selectedNode ? `
               <div class="dev-roadmap-canvas-head">
                 <h4>Выбранный блок</h4>
-                <p>Поля содержимого, ссылки и подпункты — здесь; позицию удобнее менять перетаскиванием на холсте.</p>
+                <p>Поля содержимого и ссылки — здесь; позицию удобнее менять перетаскиванием на холсте.</p>
               </div>
               <div class="dev-roadmap-grid">
                 <label>ID<input type="text" value="${escapeAttr(selectedNode.id || '')}" data-selected-node-field="id"></label>
@@ -673,42 +659,6 @@
                 <button type="button" class="dev-primary" data-save-selected-node>Применить узел</button>
                 <button type="button" class="dev-secondary danger" data-delete-selected-node>Удалить узел</button>
               </div>
-              <section class="dev-roadmap-subtasks">
-                <div class="dev-roadmap-item-head">
-                  <h4>Подзадачи</h4>
-                  <button type="button" class="dev-secondary" data-add-subtask>Добавить подпункт</button>
-                </div>
-                <div class="dev-subtask-stack">
-                  ${subTasks || '<div class="dev-user-card">Пока нет подпунктов.</div>'}
-                </div>
-                ${state.selectedSubtaskIndex !== null ? (() => {
-                  const sub = selectedNode?.data?.subTasks?.[state.selectedSubtaskIndex];
-                  if (!sub) return '';
-                  return `
-                    <section class="dev-roadmap-section" data-subtask-editor>
-                      <div class="dev-roadmap-item-head">
-                        <h4>Редактор подпункта ${state.selectedSubtaskIndex + 1}</h4>
-                        <button type="button" class="dev-secondary" data-close-subtask-editor>Закрыть</button>
-                      </div>
-                      <div class="dev-roadmap-grid">
-                        <label>Название<input type="text" value="${escapeAttr(sub.label || '')}" data-edit-subtask-field="label"></label>
-                        <label>Практика
-                          <select data-edit-subtask-field="practiceEnabled">
-                            <option value="false" ${!sub.practiceEnabled ? 'selected' : ''}>Нет</option>
-                            <option value="true" ${sub.practiceEnabled ? 'selected' : ''}>Да</option>
-                          </select>
-                        </label>
-                        <label class="dev-roadmap-grid-wide">Задание<textarea rows="3" data-edit-subtask-field="practiceText">${escapeHtml(sub.practiceText || '')}</textarea></label>
-                        <label class="dev-roadmap-grid-wide">Описание<textarea rows="3" data-edit-subtask-field="description">${escapeHtml(sub.description || '')}</textarea></label>
-                        <label class="dev-roadmap-grid-wide">Полезные ссылки<textarea rows="2" data-edit-subtask-field="freeLinks">${escapeHtml(sub.freeLinks || '')}</textarea></label>
-                        <label class="dev-roadmap-grid-wide">Статьи<textarea rows="2" data-edit-subtask-field="articleLinks">${escapeHtml(sub.articleLinks || '')}</textarea></label>
-                        <label class="dev-roadmap-grid-wide">Ресурсы plus<textarea rows="2" data-edit-subtask-field="plusLinks">${escapeHtml(sub.plusLinks || '')}</textarea></label>
-                      </div>
-                      <button type="button" class="dev-primary" data-save-single-subtask>Сохранить подпункт</button>
-                    </section>
-                  `;
-                })() : ''}
-              </section>
             ` : `
               <div class="dev-empty-state">
                 <h3>Выбери узел</h3>
@@ -789,8 +739,7 @@
     const x = Number(node.position?.x || 0);
     const y = Number(node.position?.y || 0);
     const width = 196;
-    const subTasks = Array.isArray(node.data?.subTasks) ? Math.min(node.data.subTasks.length, 4) : 0;
-    const height = 58 + (subTasks ? subTasks * 34 + 8 : 0);
+    const height = 58;
     if (side === 'top') return { x: x + width / 2, y };
     if (side === 'bottom') return { x: x + width / 2, y: y + height };
     if (side === 'left') return { x, y: y + height / 2 };
@@ -826,12 +775,11 @@
       if (!source || !target) return '';
       const start = sidePoint(source, edge.sourceSide || 'right');
       const end = sidePoint(target, edge.targetSide || 'left');
-      return `<path ${edge.animated ? 'class="is-dashed"' : ''} marker-end="url(#preview-arrow)" d="${edgePath(start, end, edge.sourceSide || 'right', edge.targetSide || 'left')}" />`;
+      return `<path class="edge-path${edge.secondary ? ' is-dashed' : ''}" marker-end="url(#preview-arrow)" d="${edgePath(start, end, edge.sourceSide || 'right', edge.targetSide || 'left')}" />`;
     }).join('');
     const cards = nodes.map((node) => `
       <div class="roadmap-flow-node" style="left:${Number(node.position?.x || 0)}px; top:${Number(node.position?.y || 0)}px; border-color:${escapeHtml(node.data?.color || '#d9d9d9')}; background:${escapeHtml(node.data?.color || '#d9d9d9')};">
         <div class="roadmap-flow-node-head"><strong>${escapeHtml(node.data?.label || 'Без названия')}</strong></div>
-        ${(node.data?.subTasks || []).length ? `<div class="roadmap-flow-node-subtasks">${node.data.subTasks.slice(0, 3).map((item) => `<span>${escapeHtml(item.label || item)}</span>`).join('')}</div>` : ''}
       </div>
     `).join('');
     return `
@@ -1065,7 +1013,7 @@
         if (!sourceEl || !targetEl) return '';
         const start = sidePointFromElement(sourceEl, edge.sourceSide || 'right');
         const end = sidePointFromElement(targetEl, edge.targetSide || 'left');
-        return `<path class="${edge.animated ? 'is-dashed' : ''}" marker-end="url(#dev-roadmap-arrow)" d="${edgePath(start, end, edge.sourceSide || 'right', edge.targetSide || 'left')}" />`;
+        return `<path class="${edge.secondary ? 'is-dashed' : ''}" marker-end="url(#dev-roadmap-arrow)" d="${edgePath(start, end, edge.sourceSide || 'right', edge.targetSide || 'left')}" />`;
       }).join('');
       lines.innerHTML = defs + paths;
     };
@@ -1344,44 +1292,6 @@
       });
     });
 
-    learningEditor.querySelector('[data-add-subtask]')?.addEventListener('click', () => {
-      updateCurrentEntry((entry) => {
-        entry.roadmap = normalizeRoadmap(entry);
-        const node = entry.roadmap.nodes.find((item) => item.id === state.selectedRoadmapNodeId);
-        if (!node) return;
-        node.data.subTasks.push(normalizeSubTask({}, node.data.subTasks.length));
-      });
-    });
-
-    learningEditor.querySelectorAll('[data-remove-subtask]').forEach((button) => {
-      button.addEventListener('click', () => {
-        const index = Number(button.dataset.removeSubtask);
-        updateCurrentEntry((entry) => {
-          entry.roadmap = normalizeRoadmap(entry);
-          const node = entry.roadmap.nodes.find((item) => item.id === state.selectedRoadmapNodeId);
-          if (!node) return;
-          node.data.subTasks.splice(index, 1);
-        });
-      });
-    });
-
-    learningEditor.querySelector('[data-save-subtasks]')?.addEventListener('click', () => {
-      updateCurrentEntry((entry) => {
-        entry.roadmap = normalizeRoadmap(entry);
-        const node = entry.roadmap.nodes.find((item) => item.id === state.selectedRoadmapNodeId);
-        if (!node) return;
-        node.data.subTasks = (node.data.subTasks || []).map((subTask, index) => ({
-          ...subTask,
-          label: learningEditor.querySelector(`[data-selected-subtask-field="label"][data-selected-subtask-index="${index}"]`)?.value.trim() || 'Новый подпункт',
-          description: learningEditor.querySelector(`[data-selected-subtask-field="description"][data-selected-subtask-index="${index}"]`)?.value.trim() || '',
-          freeLinks: learningEditor.querySelector(`[data-selected-subtask-field="freeLinks"][data-selected-subtask-index="${index}"]`)?.value.trim() || '',
-          articleLinks: learningEditor.querySelector(`[data-selected-subtask-field="articleLinks"][data-selected-subtask-index="${index}"]`)?.value.trim() || '',
-          plusLinks: learningEditor.querySelector(`[data-selected-subtask-field="plusLinks"][data-selected-subtask-index="${index}"]`)?.value.trim() || '',
-          practiceEnabled: (learningEditor.querySelector(`[data-selected-subtask-field="practiceEnabled"][data-selected-subtask-index="${index}"]`)?.value || 'false') === 'true'
-        }));
-      });
-    });
-
     learningEditor.querySelectorAll('[data-remove-roadmap-edge]').forEach((button) => {
       button.addEventListener('click', () => {
         const index = Number(button.dataset.removeRoadmapEdge);
@@ -1401,7 +1311,8 @@
           source: learningEditor.querySelector(`[data-edge-field="source"][data-edge-index="${index}"]`)?.value.trim() || '',
           target: learningEditor.querySelector(`[data-edge-field="target"][data-edge-index="${index}"]`)?.value.trim() || '',
           sourceSide: learningEditor.querySelector(`[data-edge-field="sourceSide"][data-edge-index="${index}"]`)?.value || 'right',
-          targetSide: learningEditor.querySelector(`[data-edge-field="targetSide"][data-edge-index="${index}"]`)?.value || 'left'
+          targetSide: learningEditor.querySelector(`[data-edge-field="targetSide"][data-edge-index="${index}"]`)?.value || 'left',
+          secondary: (learningEditor.querySelector(`[data-edge-field="secondary"][data-edge-index="${index}"]`)?.value || 'false') === 'true'
         })).filter((edge) => edge.source && edge.target);
       });
     });
@@ -1419,33 +1330,6 @@
       } catch {
         field.classList.add('has-error');
       }
-    });
-
-    learningEditor.querySelector('[data-close-subtask-editor]')?.addEventListener('click', () => {
-      state.selectedSubtaskIndex = null;
-      renderLearningEditor();
-    });
-
-    learningEditor.querySelector('[data-save-single-subtask]')?.addEventListener('click', () => {
-      const idx = state.selectedSubtaskIndex;
-      if (idx === null) return;
-      updateCurrentEntry((entry) => {
-        entry.roadmap = normalizeRoadmap(entry);
-        const node = entry.roadmap.nodes.find((item) => item.id === state.selectedRoadmapNodeId);
-        if (!node || !node.data?.subTasks?.[idx]) return;
-        const fields = ['label', 'description', 'freeLinks', 'articleLinks', 'plusLinks', 'practiceText'];
-        fields.forEach((f) => {
-          const input = learningEditor.querySelector(`[data-edit-subtask-field="${f}"]`);
-          if (input) {
-            node.data.subTasks[idx][f] = input.value.trim();
-          }
-        });
-        const sel = learningEditor.querySelector('[data-edit-subtask-field="practiceEnabled"]');
-        if (sel) {
-          node.data.subTasks[idx].practiceEnabled = sel.value === 'true';
-        }
-        state.selectedSubtaskIndex = null;
-      });
     });
 
     paintEdges();
