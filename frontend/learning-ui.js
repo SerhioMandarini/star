@@ -647,57 +647,143 @@
     return data;
   };
 
+  // ── practice language helpers ───────────────────────────────────────────
+  const PRACTICE_LANG_MAP_L = {
+    frontend: 'javascript', js: 'javascript', react: 'javascript',
+    backend: 'python', python: 'python', fastapi: 'python',
+    devops: 'bash',
+    'data analyst': 'sql', sql: 'sql', аналитик: 'sql',
+    'data scientist': 'python',
+    qa: 'text', manager: 'text', 'product manager': 'text',
+    designer: 'text', 'ui/ux': 'text', fullstack: 'javascript'
+  };
+  const LANGUAGE_LABELS = {
+    javascript: 'JavaScript', python: 'Python', html: 'HTML', css: 'CSS',
+    bash: 'Bash/Shell', sql: 'SQL', typescript: 'TypeScript', text: 'Текст'
+  };
+  const LANGUAGE_PLACEHOLDERS = {
+    javascript: '// Напиши решение здесь\nconsole.log("Привет!");',
+    python: '# Напиши решение здесь\nprint("Привет!")',
+    html: '<!-- Напиши HTML здесь -->\n<div></div>',
+    css: '/* Напиши CSS здесь */\n.container { }',
+    bash: '#!/bin/bash\n# Напиши скрипт здесь',
+    sql: '-- Напиши SQL-запрос здесь\nSELECT * FROM table;',
+    typescript: '// TypeScript\nconst fn = (): void => {};',
+    text: 'Напиши ответ здесь...'
+  };
+  const getPracticeLanguage = (prof) => {
+    const name = String(prof || '').toLowerCase();
+    for (const [key, lang] of Object.entries(PRACTICE_LANG_MAP_L)) {
+      if (name.includes(key)) return lang;
+    }
+    return 'javascript';
+  };
+  const getLocalPracticePlan = (profession) => {
+    try {
+      const all = JSON.parse(localStorage.getItem('roadstar-practice-skills') || '{}');
+      const data = all[profession];
+      if (!data?.skills?.length) return null;
+      const plan = [];
+      (data.skills || []).forEach((skill) => {
+        (skill.tasks || []).forEach((task) => {
+          plan.push({
+            id: task.id || `${skill.id}-${task.title}`,
+            title: task.title || skill.label,
+            level: task.level || 'easy',
+            type: task.type || 'code',
+            language: task.language || skill.language || 'javascript',
+            prompt: task.prompt || '',
+            answer: task.answer || '',
+            success: task.answer || '',
+            hint: ''
+          });
+        });
+      });
+      return plan.length ? plan : null;
+    } catch { return null; }
+  };
+
   const renderPracticePanel = async (forcedTopic = '') => {
     const panel = document.querySelector('[data-learning-panel="practice"]');
     if (!panel) return;
     const profession = currentItem();
     panel.innerHTML = `<div class="practice-card"><p>Загружаю план практики...</p></div>`;
     try {
-      let planData;
-      try {
-        planData = await fetchJson(`/api/practice/plan?item=${encodeURIComponent(profession)}`);
-      } catch {
-        const entry = getLearningEntry();
-        planData = {
-          plan: [{
-            id: 'local-practice-1',
-            title: entry.practice?.title || `${profession}: практика`,
-            level: 'easy',
-            goal: 'разобрать тему и ответить на задачу',
-            prompt: entry.practice?.prompt || 'Напиши решение по теме.',
-            success: 'Ответ содержит законченное решение и понятный ход мысли.',
-            hint: entry.practice?.placeholder || 'Опиши решение пошагово.'
-          }]
-        };
+      // Load from localStorage first, then API
+      let plan = getLocalPracticePlan(profession);
+      if (!plan) {
+        try {
+          const planData = await fetchJson(`/api/practice/plan?item=${encodeURIComponent(profession)}`);
+          plan = Array.isArray(planData?.plan) && planData.plan.length ? planData.plan : null;
+        } catch {}
       }
-      const plan = Array.isArray(planData?.plan) && planData.plan.length ? planData.plan : [{
-        id: 'local-practice-1',
-        title: `${profession}: практика`,
-        level: 'easy',
-        goal: 'разобрать тему и ответить на задачу',
-        prompt: 'Напиши решение по теме.',
-        success: 'Ответ содержит законченное решение и понятный ход мысли.',
-        hint: 'Опиши решение пошагово.'
-      }];
+      if (!plan) {
+        const defaultLang = getPracticeLanguage(profession);
+        plan = [{
+          id: 'local-practice-1',
+          title: `${profession}: практика`,
+          level: 'easy',
+          type: defaultLang === 'text' ? 'text' : 'code',
+          language: defaultLang,
+          prompt: 'Опиши или напиши решение по теме.',
+          answer: '',
+          success: 'Ответ содержит законченное решение и понятный ход мысли.',
+          hint: 'Опиши решение пошагово.'
+        }];
+      }
       const progress = getPracticeProgress(plan.length);
       const safeIndex = Math.min(progress.stepIndex || 0, Math.max(plan.length - 1, 0));
       const step = plan[safeIndex] || plan[0];
-      let taskData;
-      try {
-        taskData = await fetchJson('/api/ai/practice/task', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ profession, stepId: step.id, topic: forcedTopic })
-        });
-      } catch {
-        taskData = {
-          task: step.prompt || `Тема: ${forcedTopic || step.title}. ${profession}: опиши решение или напиши код.`,
-          step
-        };
+      const stepLang = step.language || getPracticeLanguage(profession);
+      const stepType = step.type || (stepLang === 'text' ? 'text' : 'code');
+      const isJS = stepLang === 'javascript';
+      const langLabel = LANGUAGE_LABELS[stepLang] || stepLang;
+      const placeholder = LANGUAGE_PLACEHOLDERS[stepLang] || '// Напиши решение здесь';
+
+      let taskText = step.prompt || '';
+      if (!taskText) {
+        try {
+          const taskData = await fetchJson('/api/ai/practice/task', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ profession, stepId: step.id, topic: forcedTopic })
+          });
+          taskText = taskData.task || step.prompt;
+        } catch {
+          taskText = step.prompt || `Тема: ${forcedTopic || step.title}. ${profession}: опиши решение или напиши код.`;
+        }
       }
-      progress.lastTask = taskData.task;
+
+      progress.lastTask = taskText;
       progress.planLength = plan.length;
       setPracticeProgress(progress, plan.length);
+
+      const codeEditorHtml = stepType === 'text' ? `
+        <div class="practice-text-editor">
+          <textarea class="practice-text-textarea" data-practice-answer placeholder="${escapeHtml(placeholder)}" rows="8" spellcheck="false"></textarea>
+        </div>
+      ` : `
+        <div class="practice-code-editor">
+          <div class="practice-code-editor-header">
+            <span class="practice-code-dots"><i></i><i></i><i></i></span>
+            <strong>${escapeHtml(langLabel)}</strong>
+            ${isJS
+              ? `<button type="button" class="practice-run-btn" data-run-practice-code>▶ Запустить</button>`
+              : `<button type="button" class="practice-run-btn practice-run-btn-disabled" disabled title="Запуск доступен только для JavaScript">▶ Запустить</button>`
+            }
+          </div>
+          <textarea class="practice-code-textarea" data-practice-answer placeholder="${escapeHtml(placeholder)}" spellcheck="false" autocorrect="off" autocapitalize="off"></textarea>
+        </div>
+        ${isJS ? `
+        <div class="practice-console-wrap">
+          <div class="practice-console-header">
+            <span>Консоль</span>
+            <button type="button" class="practice-console-clear" data-clear-console title="Очистить">✕</button>
+          </div>
+          <pre class="practice-console" data-practice-console>— нажми Запустить</pre>
+        </div>` : ''}
+      `;
+
       panel.innerHTML = `
         ${renderPracticeProgress(progress, plan.length)}
         <div class="practice-card">
@@ -708,22 +794,8 @@
             </div>
             <button type="button" class="ghost-button" data-practice-refresh>Новая задача</button>
           </div>
-          <p>${escapeHtml(taskData.task)}</p>
-          <div class="practice-code-editor">
-            <div class="practice-code-editor-header">
-              <span class="practice-code-dots"><i></i><i></i><i></i></span>
-              <strong>JavaScript</strong>
-              <button type="button" class="practice-run-btn" data-run-practice-code>▶ Запустить</button>
-            </div>
-            <textarea class="practice-code-textarea" data-practice-answer placeholder="// Напиши решение здесь&#10;// console.log('Привет!');" spellcheck="false" autocorrect="off" autocapitalize="off"></textarea>
-          </div>
-          <div class="practice-console-wrap">
-            <div class="practice-console-header">
-              <span>Консоль</span>
-              <button type="button" class="practice-console-clear" data-clear-console title="Очистить">✕</button>
-            </div>
-            <pre class="practice-console" data-practice-console>— нажми Запустить</pre>
-          </div>
+          <p>${escapeHtml(taskText)}</p>
+          ${codeEditorHtml}
           <div class="practice-actions">
             <button type="button" class="register-pill" data-check-practice>Оставить ответ</button>
             <button type="button" class="ghost-button" data-practice-next>Следующий шаг</button>
@@ -731,6 +803,7 @@
           <p class="practice-result" data-practice-result></p>
         </div>
       `;
+
       panel.querySelector('[data-practice-refresh]')?.addEventListener('click', () => renderPracticePanel(forcedTopic));
       panel.querySelector('[data-practice-next]')?.addEventListener('click', () => {
         const next = getPracticeProgress(plan.length);
@@ -751,10 +824,7 @@
       panel.querySelector('[data-run-practice-code]')?.addEventListener('click', () => {
         const answer = String(panel.querySelector('[data-practice-answer]')?.value || '');
         const consoleNode = panel.querySelector('[data-practice-console]');
-        if (!answer.trim()) {
-          consoleNode.textContent = 'Сначала напиши код.';
-          return;
-        }
+        if (!answer.trim()) { if (consoleNode) consoleNode.textContent = 'Сначала напиши код.'; return; }
         const output = [];
         try {
           const runner = new Function('console', `${answer}\nreturn true;`);
@@ -763,20 +833,18 @@
             warn: (...args) => output.push(`⚠ ${args.join(' ')}`),
             error: (...args) => output.push(`✕ ${args.join(' ')}`)
           });
-          consoleNode.textContent = output.length ? output.join('\n') : '✓ Код выполнен без вывода.';
-          consoleNode.className = output.some((l) => l.startsWith('✕')) ? 'practice-console is-error' : 'practice-console is-ok';
+          if (consoleNode) {
+            consoleNode.textContent = output.length ? output.join('\n') : '✓ Код выполнен без вывода.';
+            consoleNode.className = output.some((l) => l.startsWith('✕')) ? 'practice-console is-error' : 'practice-console is-ok';
+          }
         } catch (error) {
-          consoleNode.textContent = `✕ ${error.message}`;
-          consoleNode.className = 'practice-console is-error';
+          if (consoleNode) { consoleNode.textContent = `✕ ${error.message}`; consoleNode.className = 'practice-console is-error'; }
         }
       });
       panel.querySelector('[data-check-practice]')?.addEventListener('click', async () => {
         const answer = String(panel.querySelector('[data-practice-answer]')?.value || '').trim();
         const resultNode = panel.querySelector('[data-practice-result]');
-        if (!answer) {
-          resultNode.textContent = 'Сначала добавь решение.';
-          return;
-        }
+        if (!answer) { resultNode.textContent = 'Сначала добавь решение.'; return; }
         resultNode.textContent = 'Проверяю ответ...';
         try {
           let result;
@@ -784,17 +852,23 @@
             result = await fetchJson('/api/ai/practice/check', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ profession, stepId: step.id, task: taskData.task, answer })
+              body: JSON.stringify({ profession, stepId: step.id, task: taskText, answer, success: step.answer || step.success || '' })
             });
           } catch {
-            const passed = answer.length >= Math.max(24, Math.floor(String(step.success || '').length * 0.35));
+            const passed = answer.length >= Math.max(24, Math.floor(String(step.success || step.answer || '').length * 0.35));
             result = {
               passed,
               feedback: passed ? 'Ответ выглядит достаточно полным для текущего шага.' : 'Ответ пока слабый. Усиль решение и попробуй ещё раз.',
               next: passed ? 'Можно переходить к следующей задаче.' : 'Попробуй расширить ответ и объяснить ход решения.'
             };
           }
-          resultNode.textContent = `${result.feedback} ${result.next}`;
+          const modelAnswer = step.answer || '';
+          const hintHtml = modelAnswer ? `
+            <details class="practice-hint-wrap">
+              <summary>Показать образцовый ответ</summary>
+              <pre class="practice-hint-code">${escapeHtml(modelAnswer)}</pre>
+            </details>` : '';
+          resultNode.innerHTML = `${escapeHtml(result.feedback + ' ' + result.next)}${hintHtml}`;
           if (result.passed) {
             const next = getPracticeProgress(plan.length);
             const completed = new Set(Array.isArray(next.completedSteps) ? next.completedSteps : []);
@@ -804,8 +878,6 @@
             next.stepIndex = Math.min(safeIndex + 1, Math.max(plan.length - 1, 0));
             next.history = [...(next.history || []), { stepId: step.id, passed: true, at: new Date().toISOString() }].slice(-20);
             setPracticeProgress(next, plan.length);
-            resultNode.textContent = `${result.feedback} ${result.next}`;
-            renderPracticePanel();
           }
         } catch (error) {
           resultNode.textContent = error.message;

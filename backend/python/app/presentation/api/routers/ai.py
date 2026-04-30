@@ -23,11 +23,13 @@ def build_ai_router(container: Container) -> APIRouter:
         step_id = (payload.stepId or "").strip()
         plan = get_practice_plan(profession)
         step = next((item for item in plan if item["id"] == step_id), plan[0])
-        fallback_passed = len(answer) >= max(24, int(len(step["success"]) * 0.45))
+        success_override = (payload.success or "").strip()
+        success_criteria = success_override or step["success"]
+        fallback_passed = len(answer) >= max(24, int(len(success_criteria) * 0.45))
         return await container.ai_service.request_ai_json(
             [
                 {"role": "system", "content": 'Ты проверяешь ответ пользователя на практическую задачу. Верни JSON вида {"passed": boolean, "feedback": string, "next": string}. Пиши по-русски.'},
-                {"role": "user", "content": f"Профессия: {profession or 'Обучение'}.\nТема: {step['title']}.\nЗадача:\n{task}\n\nКритерий успеха:\n{step['success']}\n\nОтвет пользователя:\n{answer or '(пусто)'}"},
+                {"role": "user", "content": f"Профессия: {profession or 'Обучение'}.\nТема: {step['title']}.\nЗадача:\n{task}\n\nКритерий успеха:\n{success_criteria}\n\nОтвет пользователя:\n{answer or '(пусто)'}"},
             ],
             fallback={
                 "passed": fallback_passed,

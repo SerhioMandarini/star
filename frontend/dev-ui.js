@@ -10,7 +10,8 @@
     payment: 'roadstar-payment-content',
     services: 'roadstar-service-tokens',
     users: 'roadstar-local-users',
-    learningByItem: 'roadstar-learning-by-item'
+    learningByItem: 'roadstar-learning-by-item',
+    practiceSkills: 'roadstar-practice-skills'
   };
 
   const defaults = {
@@ -252,7 +253,65 @@
     pendingConnection: null,
     roadmapTheme: 'white',
     roadmapCamera: { x: 80, y: 64, zoom: 0.85 },
-    roadmapFitOnce: null
+    roadmapFitOnce: null,
+    practiceSkillId: null
+  };
+
+  // ── practice skills helpers ──────────────────────────────────────────────
+  const PRACTICE_LANG_MAP = {
+    frontend: 'javascript', js: 'javascript', react: 'javascript',
+    backend: 'python', питон: 'python', python: 'python', fastapi: 'python',
+    devops: 'bash', линукс: 'bash',
+    'data analyst': 'sql', sql: 'sql', аналитик: 'sql',
+    'data scientist': 'python',
+    qa: 'text', тестирование: 'text',
+    manager: 'text', 'product manager': 'text', менеджер: 'text',
+    designer: 'text', 'ui/ux': 'text', дизайн: 'text',
+    fullstack: 'javascript'
+  };
+
+  const detectPracticeLanguage = (profession) => {
+    const name = String(profession || '').toLowerCase();
+    for (const [key, lang] of Object.entries(PRACTICE_LANG_MAP)) {
+      if (name.includes(key)) return lang;
+    }
+    return 'javascript';
+  };
+
+  const getPracticeSkillsFor = (profession) => {
+    const all = read(K.practiceSkills, {});
+    return all[profession] || { skills: [] };
+  };
+
+  const savePracticeSkillsFor = (profession, data) => {
+    const all = read(K.practiceSkills, {});
+    all[profession] = data;
+    write(K.practiceSkills, all);
+  };
+
+  const autoSyncSkillsFromRoadmap = (profession) => {
+    const store = getLearningStore();
+    const entry = store[profession] || {};
+    const roadmap = normalizeRoadmap(entry);
+    const current = getPracticeSkillsFor(profession);
+    const existingIds = new Set((current.skills || []).map((s) => s.id));
+    const defaultLang = detectPracticeLanguage(profession);
+    const added = [];
+    (roadmap.nodes || []).forEach((node) => {
+      const id = node.id;
+      if (existingIds.has(id)) return;
+      added.push({
+        id,
+        label: node.data?.label || id,
+        isManual: false,
+        language: defaultLang,
+        tasks: []
+      });
+      existingIds.add(id);
+    });
+    const next = { skills: [...(current.skills || []), ...added] };
+    savePracticeSkillsFor(profession, next);
+    return next;
   };
 
   const showPanel = (name) => {
@@ -1423,6 +1482,200 @@
 
   const escapeAttr = (value) => escapeHtml(value).replaceAll('\n', '&#10;');
 
+  const LANG_LABELS = {
+    javascript: 'JavaScript', python: 'Python', html: 'HTML', css: 'CSS',
+    bash: 'Bash/Shell', sql: 'SQL', typescript: 'TypeScript', text: 'Текст'
+  };
+  const ALL_LANGS = ['javascript', 'python', 'html', 'css', 'bash', 'sql', 'typescript', 'text'];
+
+  const bindPracticeEditor = () => {
+    const mount = learningEditor.querySelector('[data-practice-editor-mount]');
+    if (!mount) return;
+    const profession = state.selectedEntry;
+    if (!profession) { mount.innerHTML = '<p>Выбери профессию в списке.</p>'; return; }
+
+    // ── render skill list ───────────────────────────────────────────────────
+    if (!state.practiceSkillId) {
+      const data = getPracticeSkillsFor(profession);
+      const skills = data.skills || [];
+      mount.innerHTML = `
+        <div class="practice-editor">
+          <div class="practice-editor-toolbar">
+            <button type="button" class="dev-primary" data-pe-sync>Из карты</button>
+            <button type="button" class="dev-secondary" data-pe-add-skill>+ Навык вручную</button>
+          </div>
+          <div class="practice-skills-list" data-pe-skills-list>
+            ${skills.length ? skills.map((skill) => `
+              <div class="practice-skill-row" data-skill-id="${escapeAttr(skill.id)}">
+                <span class="practice-skill-label" data-pe-open="${escapeAttr(skill.id)}">${escapeHtml(skill.label)}</span>
+                <span class="practice-skill-lang">${escapeHtml(LANG_LABELS[skill.language] || skill.language || '')}</span>
+                <span class="practice-skill-count">${(skill.tasks || []).length} задач</span>
+                <button type="button" class="dev-secondary practice-skill-edit-btn" data-pe-open="${escapeAttr(skill.id)}">Открыть</button>
+                <button type="button" class="practice-skill-del-btn" data-pe-del-skill="${escapeAttr(skill.id)}">✕</button>
+              </div>
+            `).join('') : '<p class="practice-empty">Нет навыков. Нажми «Из карты» или добавь вручную.</p>'}
+          </div>
+        </div>
+      `;
+
+      mount.querySelector('[data-pe-sync]')?.addEventListener('click', () => {
+        autoSyncSkillsFromRoadmap(profession);
+        bindPracticeEditor();
+      });
+
+      mount.querySelector('[data-pe-add-skill]')?.addEventListener('click', () => {
+        const label = prompt('Название навыка:');
+        if (!label?.trim()) return;
+        const current = getPracticeSkillsFor(profession);
+        const defaultLang = detectPracticeLanguage(profession);
+        current.skills = current.skills || [];
+        current.skills.push({ id: `manual-${Date.now()}`, label: label.trim(), isManual: true, language: defaultLang, tasks: [] });
+        savePracticeSkillsFor(profession, current);
+        bindPracticeEditor();
+      });
+
+      mount.querySelectorAll('[data-pe-open]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.practiceSkillId = btn.dataset.peOpen;
+          bindPracticeEditor();
+        });
+      });
+
+      mount.querySelectorAll('[data-pe-del-skill]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (!confirm('Удалить навык и все его задачи?')) return;
+          const current = getPracticeSkillsFor(profession);
+          current.skills = (current.skills || []).filter((s) => s.id !== btn.dataset.peDelSkill);
+          savePracticeSkillsFor(profession, current);
+          bindPracticeEditor();
+        });
+      });
+      return;
+    }
+
+    // ── render task list for selected skill ─────────────────────────────────
+    const data = getPracticeSkillsFor(profession);
+    const skill = (data.skills || []).find((s) => s.id === state.practiceSkillId);
+    if (!skill) { state.practiceSkillId = null; bindPracticeEditor(); return; }
+
+    const renderTaskList = () => {
+      const tasks = skill.tasks || [];
+      const taskRows = tasks.map((task, i) => `
+        <div class="practice-task-card" data-task-index="${i}">
+          <div class="practice-task-header">
+            <span class="practice-task-level practice-task-level-${task.level}">${task.level}</span>
+            <strong class="practice-task-title">${escapeHtml(task.title)}</strong>
+            <span class="practice-task-langbadge">${escapeHtml(LANG_LABELS[task.language] || task.language || '')}</span>
+            <button type="button" class="practice-task-del" data-pe-del-task="${i}">✕</button>
+          </div>
+          <div class="practice-task-body">
+            <label>Заголовок<input type="text" data-task-field="title" data-task-idx="${i}" value="${escapeAttr(task.title || '')}"></label>
+            <div class="practice-task-row-2col">
+              <label>Уровень
+                <select data-task-field="level" data-task-idx="${i}">
+                  ${['easy','medium','hard'].map((l) => `<option value="${l}" ${task.level===l?'selected':''}>${l}</option>`).join('')}
+                </select>
+              </label>
+              <label>Формат
+                <select data-task-field="type" data-task-idx="${i}">
+                  <option value="code" ${task.type==='code'?'selected':''}>Компилятор</option>
+                  <option value="text" ${task.type==='text'?'selected':''}>Текст</option>
+                </select>
+              </label>
+              <label>Язык
+                <select data-task-field="language" data-task-idx="${i}">
+                  ${ALL_LANGS.map((l) => `<option value="${l}" ${task.language===l?'selected':''}>${LANG_LABELS[l]||l}</option>`).join('')}
+                </select>
+              </label>
+            </div>
+            <label>Задание<textarea rows="3" data-task-field="prompt" data-task-idx="${i}">${escapeHtml(task.prompt || '')}</textarea></label>
+            <label>Образцовый ответ<textarea rows="4" data-task-field="answer" data-task-idx="${i}">${escapeHtml(task.answer || '')}</textarea></label>
+          </div>
+        </div>
+      `).join('');
+
+      mount.innerHTML = `
+        <div class="practice-editor">
+          <div class="practice-editor-toolbar">
+            <button type="button" class="dev-secondary" data-pe-back>← Назад к навыкам</button>
+            <strong class="practice-skill-heading">${escapeHtml(skill.label)}</strong>
+            <label class="practice-skill-lang-label">Язык навыка
+              <select data-pe-skill-lang>
+                ${ALL_LANGS.map((l) => `<option value="${l}" ${skill.language===l?'selected':''}>${LANG_LABELS[l]||l}</option>`).join('')}
+              </select>
+            </label>
+            <button type="button" class="dev-primary" data-pe-add-task>+ Задача</button>
+            <button type="button" class="dev-secondary" data-pe-ai-gen>✦ ИИ генерация</button>
+            <button type="button" class="dev-primary" data-pe-save-tasks>Сохранить</button>
+          </div>
+          <div class="practice-tasks-list" data-pe-tasks-list>
+            ${taskRows || '<p class="practice-empty">Нет задач. Добавь вручную или через ИИ.</p>'}
+          </div>
+        </div>
+      `;
+
+      mount.querySelector('[data-pe-back]')?.addEventListener('click', () => {
+        state.practiceSkillId = null;
+        bindPracticeEditor();
+      });
+
+      mount.querySelector('[data-pe-skill-lang]')?.addEventListener('change', (e) => {
+        skill.language = e.target.value;
+      });
+
+      mount.querySelector('[data-pe-add-task]')?.addEventListener('click', () => {
+        skill.tasks = skill.tasks || [];
+        skill.tasks.push({ id: `task-${Date.now()}`, title: 'Новая задача', level: 'easy', type: skill.language === 'text' ? 'text' : 'code', language: skill.language || 'javascript', prompt: '', answer: '' });
+        savePracticeSkillsFor(profession, data);
+        renderTaskList();
+      });
+
+      mount.querySelectorAll('[data-pe-del-task]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const idx = Number(btn.dataset.peDelTask);
+          skill.tasks.splice(idx, 1);
+          savePracticeSkillsFor(profession, data);
+          renderTaskList();
+        });
+      });
+
+      mount.querySelector('[data-pe-save-tasks]')?.addEventListener('click', () => {
+        mount.querySelectorAll('[data-task-field]').forEach((input) => {
+          const idx = Number(input.dataset.taskIdx);
+          const field = input.dataset.taskField;
+          if (skill.tasks[idx]) skill.tasks[idx][field] = input.value;
+        });
+        savePracticeSkillsFor(profession, data);
+        renderTaskList();
+      });
+
+      mount.querySelector('[data-pe-ai-gen]')?.addEventListener('click', async () => {
+        const btn = mount.querySelector('[data-pe-ai-gen]');
+        btn.disabled = true;
+        btn.textContent = '...';
+        try {
+          const resp = await fetch(apiUrl('/api/admin/practice/generate'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ profession, skillLabel: skill.label, language: skill.language || 'javascript', count: 5 })
+          });
+          const result = await resp.json();
+          if (Array.isArray(result.tasks) && result.tasks.length) {
+            skill.tasks = result.tasks;
+            savePracticeSkillsFor(profession, data);
+            renderTaskList();
+          }
+        } catch {
+          alert('Не удалось сгенерировать. Проверь AI-ключ в настройках.');
+        } finally {
+          if (btn) { btn.disabled = false; btn.textContent = '✦ ИИ генерация'; }
+        }
+      });
+    };
+
+    renderTaskList();
+  };
+
   const renderLearningEditor = () => {
     const fullRoadmap = state.learningMode === 'edit' && state.selectedSection === 'roadmap' && !!state.selectedEntry;
     document.body.classList.toggle('dev-roadmap-mode', fullRoadmap);
@@ -1470,12 +1723,7 @@
 
     const body = {
       roadmap: renderRoadmapEditor(data),
-      practice: `
-        <label>
-          Редактор практики
-          <textarea rows="16" data-learning-practice>${escapeHtml(data.practice || '')}</textarea>
-        </label>
-      `,
+      practice: `<div data-practice-editor-mount></div>`,
       grade: `
         <label>
           Редактор грейда
@@ -1548,6 +1796,7 @@
       state.selectedEntry = null;
       state.pendingConnection = null;
       state.roadmapFitOnce = null;
+      state.practiceSkillId = null;
       renderLearningEditor();
     });
 
@@ -1555,17 +1804,18 @@
       button.addEventListener('click', () => {
         state.selectedSection = button.dataset.learningSection;
         if (state.selectedSection !== 'roadmap') state.pendingConnection = null;
+        if (state.selectedSection !== 'practice') state.practiceSkillId = null;
         renderLearningEditor();
       });
     });
 
     if (state.selectedSection === 'roadmap') bindRoadmapEditor();
+    if (state.selectedSection === 'practice') bindPracticeEditor();
 
     learningEditor.querySelector('[data-learning-save]')?.addEventListener('click', () => {
       const store = getLearningStore();
       const current = { ...(store[state.selectedEntry] || ensureProfessionData(state.selectedEntry)) };
       current.roadmap = normalizeRoadmap(current);
-      current.practice = learningEditor.querySelector('[data-learning-practice]')?.value ?? current.practice;
       current.grade = learningEditor.querySelector('[data-learning-grade]')?.value ?? current.grade;
       current.interview = learningEditor.querySelector('[data-learning-interview]')?.value ?? current.interview;
       store[state.selectedEntry] = current;

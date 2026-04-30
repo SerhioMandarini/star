@@ -11,6 +11,7 @@ class PracticeCheckRequest(BaseModel):
     answer: str | None = None
     task: str | None = None
     stepId: str | None = None
+    success: str | None = None
 
 
 class MentorRequest(BaseModel):

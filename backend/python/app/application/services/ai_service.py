@@ -43,6 +43,49 @@ class AiService:
         except Exception:
             return fallback
 
+    async def generate_skill_tasks(self, profession: str, skill_label: str, language: str, count: int = 5) -> list[dict[str, Any]]:
+        levels = ["easy", "easy", "medium", "hard", "hard"][:count]
+        type_hint = "text" if language in ("text", "") else "code"
+        lang_hint = f"язык: {language}" if language not in ("text", "") else "текстовый ответ (без кода)"
+        result = await self.request_ai_text(
+            [
+                {"role": "system", "content": "Ты создаёшь практические задания для образовательной платформы. Ответ строго в JSON-массиве, без пояснений, без markdown."},
+                {
+                    "role": "user",
+                    "content": (
+                        f"Профессия: {profession}. Навык: {skill_label}. {lang_hint}.\n"
+                        f"Сгенерируй {count} задач от лёгкого к тяжёлому.\n"
+                        "Каждая задача — JSON-объект с полями:\n"
+                        '  id (строка snake_case), title (строка), level (easy/medium/hard),\n'
+                        f'  type ("{type_hint}"), language ("{language}"),\n'
+                        "  prompt (текст задания), answer (образцовый ответ / решение).\n"
+                        "Верни массив: [{...}, ...]"
+                    ),
+                },
+            ],
+            fallback="[]",
+        )
+        try:
+            start = result.find("[")
+            end = result.rfind("]")
+            chunk = result[start : end + 1] if start != -1 and end != -1 else "[]"
+            tasks = json.loads(chunk)
+            if not isinstance(tasks, list):
+                tasks = []
+        except Exception:
+            tasks = []
+        for i, t in enumerate(tasks):
+            if not isinstance(t, dict):
+                continue
+            t.setdefault("id", f"task-{i}")
+            t.setdefault("title", f"Задача {i + 1}")
+            t.setdefault("level", levels[i] if i < len(levels) else "medium")
+            t.setdefault("type", type_hint)
+            t.setdefault("language", language)
+            t.setdefault("prompt", "")
+            t.setdefault("answer", "")
+        return tasks
+
     async def generate_practice_task(self, profession: str, step_id: str) -> dict[str, Any]:
         plan = get_practice_plan(profession)
         step = next((item for item in plan if item["id"] == step_id), plan[0])

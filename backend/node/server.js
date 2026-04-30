@@ -320,9 +320,11 @@ app.post("/api/ai/practice/check", async (req, res) => {
     const answer = String(req.body?.answer || "").trim();
     const task = String(req.body?.task || "").trim();
     const stepId = String(req.body?.stepId || "").trim();
+    const successOverride = String(req.body?.success || "").trim();
     const plan = getPracticePlan(profession);
     const step = plan.find((item) => item.id === stepId) || plan[0];
-    const fallbackPassed = answer.length >= Math.max(24, Math.floor((step.success || "").length * 0.45));
+    const successCriteria = successOverride || step.success;
+    const fallbackPassed = answer.length >= Math.max(24, Math.floor(successCriteria.length * 0.45));
     const response = await requestAiJson([
       {
         role: "system",
@@ -330,7 +332,7 @@ app.post("/api/ai/practice/check", async (req, res) => {
       },
       {
         role: "user",
-        content: `Профессия: ${profession || "Обучение"}.\nТема: ${step.title}.\nЗадача:\n${task}\n\nКритерий успеха:\n${step.success}\n\nОтвет пользователя:\n${answer || "(пусто)" }`
+        content: `Профессия: ${profession || "Обучение"}.\nТема: ${step.title}.\nЗадача:\n${task}\n\nКритерий успеха:\n${successCriteria}\n\nОтвет пользователя:\n${answer || "(пусто)"}`
       }
     ], {
       passed: fallbackPassed,
@@ -341,6 +343,20 @@ app.post("/api/ai/practice/check", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Не удалось проверить ответ." });
+  }
+});
+
+app.post("/api/admin/practice/generate", async (req, res) => {
+  try {
+    const profession = String(req.body?.profession || "").trim();
+    const skillLabel = String(req.body?.skillLabel || "").trim();
+    const language = String(req.body?.language || "javascript").trim();
+    const count = Math.max(1, Math.min(10, Number(req.body?.count) || 5));
+    const tasks = await generateSkillTasks(profession, skillLabel, language, count);
+    res.json({ tasks });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Не удалось сгенерировать задачи." });
   }
 });
 
@@ -663,6 +679,43 @@ async function requestAiText(messages, { fallback = "Скоро будет" } = 
   }
   const data = await response.json();
   return data?.choices?.[0]?.message?.content?.trim() || fallback;
+}
+
+async function generateSkillTasks(profession, skillLabel, language, count = 5) {
+  const levels = ["easy", "easy", "medium", "hard", "hard"].slice(0, count);
+  const typeHint = ["text", ""].includes(language) ? "text" : "code";
+  const langHint = !["text", ""].includes(language) ? `язык: ${language}` : "текстовый ответ (без кода)";
+  const result = await requestAiText([
+    {
+      role: "system",
+      content: "Ты создаёшь практические задания для образовательной платформы. Ответ строго в JSON-массиве, без пояснений, без markdown."
+    },
+    {
+      role: "user",
+      content: `Профессия: ${profession}. Навык: ${skillLabel}. ${langHint}.\nСгенерируй ${count} задач от лёгкого к тяжёлому.\nКаждая задача — JSON-объект с полями:\n  id (строка snake_case), title (строка), level (easy/medium/hard),\n  type ("${typeHint}"), language ("${language}"),\n  prompt (текст задания), answer (образцовый ответ / решение).\nВерни массив: [{...}, ...]`
+    }
+  ], { fallback: "[]" });
+  let tasks = [];
+  try {
+    const start = result.indexOf("[");
+    const end = result.lastIndexOf("]");
+    const chunk = start !== -1 && end !== -1 ? result.slice(start, end + 1) : "[]";
+    const parsed = JSON.parse(chunk);
+    tasks = Array.isArray(parsed) ? parsed : [];
+  } catch {
+    tasks = [];
+  }
+  tasks.forEach((t, i) => {
+    if (typeof t !== "object" || !t) return;
+    t.id = t.id || `task-${i}`;
+    t.title = t.title || `Задача ${i + 1}`;
+    t.level = t.level || (levels[i] || "medium");
+    t.type = t.type || typeHint;
+    t.language = t.language || language;
+    t.prompt = t.prompt || "";
+    t.answer = t.answer || "";
+  });
+  return tasks;
 }
 
 async function requestAiJson(messages, fallback) {
