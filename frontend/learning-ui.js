@@ -437,20 +437,34 @@
     if (fillNode) fillNode.style.width = `${value}%`;
   };
 
-  const updateRoadmapProgressUI = (nodes) => {
+  const updateRoadmapProgressUI = async (nodes) => {
     const progress = getRoadmapProgress();
-    let total = 0;
-    let done = 0;
-    nodes.forEach((node) => {
-      total++;
-      if (progress.completed?.[node.id]) done++;
-      (node.data?.subTasks || []).forEach((_, i) => {
-        total++;
-        if (progress.completed?.[`${node.id}-sub-${i}`]) done++;
+
+    const entry = getLearningEntry();
+    const roadmapNodes = entry?.roadmap?.nodes || nodes || [];
+
+    const total = Array.isArray(roadmapNodes) ? roadmapNodes.length : 0;
+
+    const done = Array.isArray(roadmapNodes)
+      ? roadmapNodes.filter((node) => progress.completed?.[node.id]).length
+      : 0;
+
+    try {
+      const response = await fetch('http://localhost:3000/api/roadmaps/progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          total,
+          completed: done
+        })
       });
-    });
-    const percent = total > 0 ? Math.round((done / total) * 100) : 0;
-    setSectionProgress('Прогресс дорожной карты', percent);
+
+      const data = await response.json();
+      setSectionProgress('Прогресс дорожной карты', data.percent);
+    } catch (error) {
+      const percent = total > 0 ? Math.round((done / total) * 100) : 0;
+      setSectionProgress('Прогресс дорожной карты', percent);
+    }
   };
 
   const closeLearningModalWithoutReload = () => {

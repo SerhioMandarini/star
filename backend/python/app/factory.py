@@ -14,7 +14,7 @@ from backend.python.app.presentation.api.routers.fallback import build_fallback_
 from backend.python.app.presentation.api.routers.practice import build_practice_router
 from backend.python.app.presentation.api.routers.system import build_system_router
 from backend.python.app.presentation.dependencies import Container
-
+from backend.python.app.presentation.api.routers.roadmap import build_roadmap_router
 
 def create_app() -> FastAPI:
     settings = get_settings()
@@ -48,5 +48,6 @@ def create_app() -> FastAPI:
     app.include_router(build_admin_router(container))
     app.include_router(build_practice_router())
     app.include_router(build_ai_router(container))
+    app.include_router(build_roadmap_router())
     app.include_router(build_fallback_router(settings.legacy_node_url, settings.frontend_dir))
     return app
