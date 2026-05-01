@@ -7,7 +7,33 @@
   const ROADMAP_PROGRESS_KEY = 'roadstar-roadmap-progress-by-user';
   const PRACTICE_PROGRESS_KEY = 'roadstar-practice-progress-by-user';
   const ARTICLES_KEY = 'roadstar-articles';
+  const SGR_GRADE_KEY = 'roadstar-sgr-grade-by-user';
+  const SGR_RESULT_KEY = 'roadstar-sgr-result-by-user';
+  const PRACTICE_SKILLS_KEY = 'roadstar-practice-skills';
   const API_BASE = window.location.protocol === 'file:' || (window.location.port && window.location.port !== '3000') ? 'http://localhost:3000' : '';
+
+  const SGR_GRADE_LABELS = { intern: 'Стажёр', junior: 'Junior', middle: 'Middle', senior: 'Senior' };
+  const SGR_GRADE_KEY_MAP = { Senior: 'senior', Middle: 'middle', Junior: 'junior', 'Стажёр': 'intern' };
+  const SGR_DEFAULTS = {
+    internet:      { intern: 30, junior: 50, middle: 65, senior: 78 },
+    html:          { intern: 45, junior: 62, middle: 80, senior: 92 },
+    css:           { intern: 40, junior: 60, middle: 78, senior: 90 },
+    javascript:    { intern: 25, junior: 55, middle: 80, senior: 95 },
+    git:           { intern: 35, junior: 58, middle: 73, senior: 82 },
+    'pkg-managers':{ intern: 25, junior: 48, middle: 65, senior: 77 },
+    'build-tools': { intern: 10, junior: 32, middle: 63, senior: 80 },
+    'css-arch':    { intern: 15, junior: 38, middle: 66, senior: 82 },
+    'css-preproc': { intern: 15, junior: 35, middle: 62, senior: 78 },
+    typescript:    { intern: 5,  junior: 18, middle: 68, senior: 88 },
+    react:         { intern: 10, junior: 38, middle: 77, senior: 92 },
+    'state-mgmt':  { intern: 5,  junior: 22, middle: 70, senior: 87 },
+    testing:       { intern: 5,  junior: 18, middle: 58, senior: 84 },
+    security:      { intern: 10, junior: 22, middle: 53, senior: 74 },
+    performance:   { intern: 5,  junior: 16, middle: 50, senior: 76 },
+    accessibility: { intern: 5,  junior: 14, middle: 42, senior: 66 },
+    cicd:          { intern: 10, junior: 28, middle: 60, senior: 80 }
+  };
+  const SGR_AVG_FACTORS = { intern: 0.70, junior: 0.76, middle: 0.82, senior: 0.88 };
 
   const plusLink = document.querySelector('[data-learning-plus-link]');
   const plusBadge = document.querySelector('[data-plus-badge]');
@@ -433,6 +459,8 @@
     document.querySelectorAll('[data-learning-panel]').forEach((panel) => {
       panel.hidden = panel.dataset.learningPanel !== name;
     });
+    const strip = document.querySelector('[data-learning-progress-strip]');
+    if (strip) strip.hidden = name === 'skill-gap';
   };
 
   const getRoadmapProgress = () => {
@@ -518,10 +546,13 @@
     const valueNode = document.querySelector('[data-learning-progress-value]');
     const fillNode = document.querySelector('[data-learning-progress-fill]');
     if (stripNode) {
-      stripNode.hidden = false;
-      stripNode.style.display = 'grid';
-      stripNode.style.visibility = 'visible';
-      stripNode.style.opacity = '1';
+      const activeTab = document.querySelector('[data-learning-tab].is-active')?.dataset.learningTab;
+      if (activeTab !== 'skill-gap') {
+        stripNode.hidden = false;
+        stripNode.style.display = 'grid';
+        stripNode.style.visibility = 'visible';
+        stripNode.style.opacity = '1';
+      }
     }
     if (labelNode) labelNode.textContent = label;
     if (valueNode) {
@@ -1278,6 +1309,11 @@
       const percent = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
       const gradeLabel = percent >= 90 ? 'Senior' : percent >= 70 ? 'Middle' : percent >= 50 ? 'Junior' : 'Стажёр';
       setSectionProgress('Прогресс грейда', percent);
+      try {
+        const rMap = readJson(SGR_RESULT_KEY, {});
+        rMap[`${currentUserKey()}::${currentItem()}`] = { grade: SGR_GRADE_KEY_MAP[gradeLabel] || 'junior', percent };
+        localStorage.setItem(SGR_RESULT_KEY, JSON.stringify(rMap));
+      } catch { /* ignore */ }
 
       panel.innerHTML = `
         <div class="learning-question-card grade-results-card">
@@ -1311,6 +1347,158 @@
     };
 
     renderStart();
+  };
+
+  const renderSkillGapRadar = () => {
+    const panel = document.querySelector('[data-learning-panel="skill-gap"]');
+    if (!panel) return;
+
+    const strip = document.querySelector('[data-learning-progress-strip]');
+    if (strip) strip.hidden = true;
+
+    const profession = currentItem();
+    const entry = getLearningEntry();
+    const seedEntry = LEARNING_SEEDS[profession];
+    const rawNodes = entry?.roadmap?.nodes?.length ? entry.roadmap.nodes : (seedEntry?.nodes || []);
+
+    const sgrConfig = entry?.skillGap || {};
+    const configSkills = sgrConfig.skills || [];
+    const resultKey = `${currentUserKey()}::${profession}`;
+    const gradeResult = readJson(SGR_RESULT_KEY, {})[resultKey] || null;
+    const gradeMap = readJson(SGR_GRADE_KEY, {});
+    const selectedGrade = gradeMap[resultKey] || gradeResult?.grade || 'junior';
+
+    const practiceSkillsList = (readJson(PRACTICE_SKILLS_KEY, {})[profession]?.skills || []);
+    const completedSteps = new Set(getPracticeProgress(0).completedSteps || []);
+    let hasAnyPracticeData = false;
+
+    // Primary: admin-configured skills; fallback: all non-Draft skill nodes from roadmap
+    let sourceNodes;
+    if (configSkills.length > 0) {
+      sourceNodes = configSkills.map((cs) => {
+        const rn = rawNodes.find((n) => n.id === cs.id);
+        return {
+          id: cs.id,
+          data: { label: cs.label || rn?.data?.label || cs.id, color: cs.color || rn?.data?.color || '#888' },
+          _cfg: cs
+        };
+      });
+    } else {
+      sourceNodes = rawNodes.filter((n) => n.type === 'skillNode' && n.data?.status !== 'Draft');
+      if (!sourceNodes.length) {
+        panel.innerHTML = `<div class="sgr-empty"><p>Нет навыков в дорожной карте.</p></div>`;
+        return;
+      }
+    }
+
+    const skills = sourceNodes.map((node) => {
+      const id = node.id;
+      const cfg = node._cfg || configSkills.find((s) => s.id === id);
+      const defReqs = SGR_DEFAULTS[id];
+      const requirements = cfg?.requirements || defReqs || (() => {
+        const b = 80;
+        return { intern: Math.round(b * 0.38), junior: Math.round(b * 0.62), middle: Math.round(b * 0.88), senior: b };
+      })();
+      const averages = cfg?.averages || Object.fromEntries(
+        Object.entries(requirements).map(([g, v]) => [g, Math.round(v * (SGR_AVG_FACTORS[g] || 0.78))])
+      );
+      const ps = practiceSkillsList.find((s) => s.id === id);
+      let myKnowledge = null;
+      if (ps && (ps.tasks || []).length > 0) {
+        const taskIds = new Set((ps.tasks || []).map((t) => t.id || `${id}-${t.title}`));
+        const done = [...taskIds].filter((tid) => completedSteps.has(tid)).length;
+        myKnowledge = Math.round((done / taskIds.size) * 100);
+        hasAnyPracticeData = true;
+      }
+      return { id, label: node.data?.label || id, color: node.data?.color || '#888', requirements, averages, myKnowledge };
+    });
+
+    const gradeButtons = ['intern', 'junior', 'middle', 'senior'].map((g) => {
+      const isResult = gradeResult?.grade === g;
+      return `<button type="button" class="sgr-grade-btn ${g === selectedGrade ? 'is-active' : ''}" data-sgr-grade="${g}">${SGR_GRADE_LABELS[g]}${isResult ? ' ★' : ''}</button>`;
+    }).join('');
+
+    const gradeBadge = gradeResult
+      ? `<span class="sgr-grade-badge">Ваш грейд: <strong>${SGR_GRADE_LABELS[gradeResult.grade] || gradeResult.grade}</strong> (${gradeResult.percent}%)</span>`
+      : '';
+
+    const COL_W = 110, CHART_H = 250, PAD_TOP = 72, PAD_BOTTOM = 18, PAD_L = 28;
+    const graphH = CHART_H - PAD_TOP - PAD_BOTTOM;
+    const totalW = PAD_L + skills.length * COL_W + 20;
+    const toY = (v) => PAD_TOP + graphH - (Math.min(100, Math.max(0, v)) / 100) * graphH;
+    const toX = (i) => PAD_L + i * COL_W + COL_W / 2;
+    const h01 = (str) => { let h = 5381; for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) & 0x7fffffff; return (h % 1000) / 1000; };
+    const wave = (s) => { const a = 10, w = 44; const p1 = 15 - a * h01(s + 'w1'), p2 = 15 + a * h01(s + 'w2'), p3 = 15 - a * h01(s + 'w3'); return `M0,${(p1+15)/2} C${w/4},${p1} ${w/3},${p2} ${w/2},${(p1+p2)/2} C${2*w/3},${p3} ${3*w/4},${p2} ${w},${p3}`; };
+
+    const polylines = (fn, stroke) => {
+      const segs = []; let cur = [];
+      skills.forEach((s, i) => { const v = fn(s); if (v === null) { if (cur.length > 1) segs.push([...cur]); cur = []; } else cur.push(`${toX(i)},${toY(v)}`); });
+      if (cur.length) segs.push(cur);
+      return segs.filter((s) => s.length > 0).map((pts) => `<polyline points="${pts.join(' ')}" fill="none" stroke="${stroke}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`).join('');
+    };
+    const circs = (fn, fill) => skills.map((s, i) => { const v = fn(s); return v === null ? '' : `<circle cx="${toX(i)}" cy="${toY(v)}" r="5.5" fill="${fill}" stroke="rgba(0,0,0,0.45)" stroke-width="1.5"/>`; }).join('');
+
+    const cols = skills.map((s, i) => {
+      const cx = toX(i), x0 = PAD_L + i * COL_W;
+      const div = i > 0 ? `<line x1="${x0}" y1="${PAD_TOP-16}" x2="${x0}" y2="${CHART_H-PAD_BOTTOM+4}" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>` : '';
+      const ico = `<rect x="${cx-24}" y="10" width="48" height="32" rx="7" fill="${s.color}" opacity="0.85"/><g transform="translate(${cx-22},16)"><path d="${wave(s.id)}" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/></g>`;
+      const short = s.label.length > 9 ? s.label.substring(0, 8) + '…' : s.label;
+      const lbl = `<text x="${cx}" y="54" text-anchor="middle" font-size="9.5" fill="rgba(255,255,255,0.65)" font-family="Manrope,sans-serif">${escapeHtml(short)}</text>`;
+      return div + ico + lbl;
+    }).join('');
+
+    const reqFn = (s) => s.requirements[selectedGrade] ?? null;
+    const avgFn = (s) => s.averages[selectedGrade] ?? null;
+    const myFn = (s) => s.myKnowledge;
+
+    const svg = `<svg viewBox="0 0 ${totalW} ${CHART_H}" width="${totalW}" height="${CHART_H}" xmlns="http://www.w3.org/2000/svg" style="display:block">${cols}${polylines(reqFn,'#4ade80')}${polylines(avgFn,'#facc15')}${polylines(myFn,'#f87171')}${circs(reqFn,'#4ade80')}${circs(avgFn,'#facc15')}${circs(myFn,'#f87171')}</svg>`;
+
+    const conclusions = skills.map((s) => {
+      const req = s.requirements[selectedGrade] ?? 0;
+      const my = s.myKnowledge;
+      if (my === null) return `<div class="sgr-conclusion-row"><span class="sgr-conclusion-dot" style="background:${escapeHtml(s.color)}"></span><span class="sgr-conclusion-name">${escapeHtml(s.label)}</span><span class="sgr-conclusion-val sgr-no-data">нет данных</span><span class="sgr-conclusion-hint">Пройдите практику</span></div>`;
+      const dev = req > 0 ? Math.round(((my - req) / req) * 100) : 0;
+      const sign = dev >= 0 ? '+' : '';
+      const cls = dev >= 0 ? 'sgr-pos' : 'sgr-neg';
+      const hint = dev >= 10 ? 'Выше требований' : dev >= -10 ? 'В норме' : dev >= -30 ? 'Небольшой разрыв' : 'Значительный разрыв';
+      return `<div class="sgr-conclusion-row"><span class="sgr-conclusion-dot" style="background:${escapeHtml(s.color)}"></span><span class="sgr-conclusion-name">${escapeHtml(s.label)}</span><span class="sgr-conclusion-val ${cls}">${sign}${dev}%</span><span class="sgr-conclusion-hint">${hint}</span></div>`;
+    }).join('');
+
+    const noBanner = !hasAnyPracticeData ? `<div class="sgr-no-practice-banner"><span>Данные о знаниях не определены — пройдите практику</span><button type="button" class="sgr-banner-btn" data-sgr-goto-practice>Перейти к практике</button></div>` : '';
+
+    panel.innerHTML = `<div class="sgr-wrap">
+      <div class="sgr-controls">
+        <div class="sgr-grade-selector">
+          <span class="sgr-grade-label">Грейд:</span>
+          <div class="sgr-grade-btns">${gradeButtons}</div>
+          ${gradeBadge}
+          <button type="button" class="sgr-determine-btn" data-sgr-determine>Определить грейд</button>
+        </div>
+        <button type="button" class="sgr-plus-btn" data-sgr-personal>+ Персональное обучение</button>
+      </div>
+      ${noBanner}
+      <div class="sgr-chart-scroll">${svg}</div>
+      <div class="sgr-legend">
+        <span class="sgr-legend-item"><span class="sgr-dot" style="background:#4ade80"></span>Требования рынка</span>
+        <span class="sgr-legend-item"><span class="sgr-dot" style="background:#facc15"></span>Средний уровень</span>
+        <span class="sgr-legend-item"><span class="sgr-dot" style="background:#f87171"></span>Мои знания</span>
+      </div>
+      <div class="sgr-conclusions">
+        <strong class="sgr-conclusions-label">выводы:</strong>
+        <div class="sgr-conclusions-grid">${conclusions}</div>
+      </div>
+    </div>`;
+
+    panel.querySelectorAll('[data-sgr-grade]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const m = readJson(SGR_GRADE_KEY, {}); m[resultKey] = btn.dataset.sgrGrade;
+        localStorage.setItem(SGR_GRADE_KEY, JSON.stringify(m));
+        renderSkillGapRadar();
+      });
+    });
+    panel.querySelector('[data-sgr-determine]')?.addEventListener('click', () => { activateTab('grade'); renderGradePanel(); });
+    panel.querySelector('[data-sgr-goto-practice]')?.addEventListener('click', () => { activateTab('practice'); renderPracticePanel(); });
+    panel.querySelector('[data-sgr-personal]')?.addEventListener('click', () => { activateTab('mentor'); renderMentorPanel(); });
   };
 
   const renderInterviewPanel = () => {
@@ -1379,6 +1567,7 @@
         if (target === 'grade') renderGradePanel();
         if (target === 'interview') renderInterviewPanel();
         if (target === 'articles') renderArticles();
+        if (target === 'skill-gap') renderSkillGapRadar();
       });
     });
   };

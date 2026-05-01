@@ -79,7 +79,7 @@ const defaultAdminConfig = {
 app.use(express.json());
 app.use(cookieParser());
 app.use(passport.initialize());
-app.use(express.static(path.join(__dirname, "../../frontend")));
+app.use(express.static(path.join(__dirname, "../../frontend"), { etag: false, lastModified: false, maxAge: 0 }));
 
 passport.use("google", new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID || "missing-google-client-id",

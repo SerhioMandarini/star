@@ -304,8 +304,30 @@
     roadmapTheme: 'white',
     roadmapCamera: { x: 80, y: 64, zoom: 0.85 },
     roadmapFitOnce: null,
-    practiceSkillId: null
+    practiceSkillId: null,
+    sgrSkillId: null
   };
+
+  const SGR_DEFAULTS_ADMIN = {
+    internet:      { intern: 30, junior: 50, middle: 65, senior: 78 },
+    html:          { intern: 45, junior: 62, middle: 80, senior: 92 },
+    css:           { intern: 40, junior: 60, middle: 78, senior: 90 },
+    javascript:    { intern: 25, junior: 55, middle: 80, senior: 95 },
+    git:           { intern: 35, junior: 58, middle: 73, senior: 82 },
+    'pkg-managers':{ intern: 25, junior: 48, middle: 65, senior: 77 },
+    'build-tools': { intern: 10, junior: 32, middle: 63, senior: 80 },
+    'css-arch':    { intern: 15, junior: 38, middle: 66, senior: 82 },
+    'css-preproc': { intern: 15, junior: 35, middle: 62, senior: 78 },
+    typescript:    { intern: 5,  junior: 18, middle: 68, senior: 88 },
+    react:         { intern: 10, junior: 38, middle: 77, senior: 92 },
+    'state-mgmt':  { intern: 5,  junior: 22, middle: 70, senior: 87 },
+    testing:       { intern: 5,  junior: 18, middle: 58, senior: 84 },
+    security:      { intern: 10, junior: 22, middle: 53, senior: 74 },
+    performance:   { intern: 5,  junior: 16, middle: 50, senior: 76 },
+    accessibility: { intern: 5,  junior: 14, middle: 42, senior: 66 },
+    cicd:          { intern: 10, junior: 28, middle: 60, senior: 80 }
+  };
+  const SGR_AVG_FACTORS_ADMIN = { intern: 0.70, junior: 0.76, middle: 0.82, senior: 0.88 };
 
   // ── practice skills helpers ──────────────────────────────────────────────
   const PRACTICE_LANG_MAP = {
@@ -1312,6 +1334,9 @@
           state.selectedRoadmapNodeId = nextId;
         }
       });
+      // Persist to backend so reload doesn't revert changes
+      const saved = getLearningStore()[state.selectedEntry];
+      if (saved) saveRoadmapToBackend(state.selectedEntry, saved);
     });
 
     learningEditor.querySelector('[data-delete-selected-node]')?.addEventListener('click', () => {
@@ -1925,6 +1950,113 @@
     render();
   };
 
+  const saveSgrData = (profession, data) => {
+    const store = getLearningStore();
+    const entry = store[profession] || ensureProfessionData(profession);
+    entry.skillGap = data;
+    store[profession] = entry;
+    write(K.learningByItem, store);
+  };
+
+  const bindSkillGapEditor = () => {
+    const mount = learningEditor.querySelector('[data-sgr-editor-mount]');
+    if (!mount) return;
+    const profession = state.selectedEntry;
+    if (!profession) { mount.innerHTML = '<p>Выбери профессию.</p>'; return; }
+
+    const store = getLearningStore();
+    const entry = store[profession] || ensureProfessionData(profession);
+    const sgrData = entry.skillGap || { skills: [] };
+    const skills = sgrData.skills || [];
+
+    const getDefReqs = (id) => SGR_DEFAULTS_ADMIN[id] || { intern: 20, junior: 40, middle: 65, senior: 85 };
+    const getDefAvgs = (reqs) => Object.fromEntries(Object.entries(reqs).map(([g, v]) => [g, Math.round(v * (SGR_AVG_FACTORS_ADMIN[g] || 0.78))]));
+
+    if (!state.sgrSkillId) {
+      mount.innerHTML = `
+        <div class="practice-editor">
+          <div class="practice-editor-toolbar">
+            <button type="button" class="dev-primary" data-sgr-sync>Из карты (Core/Main)</button>
+            <button type="button" class="dev-secondary" data-sgr-add>+ Навык вручную</button>
+          </div>
+          <div class="practice-skills-list" data-sgr-list>
+            ${skills.length ? skills.map((s) => `
+              <div class="practice-skill-row">
+                <span class="practice-skill-label">${escapeHtml(s.label)}</span>
+                <button type="button" class="dev-secondary practice-skill-edit-btn" data-sgr-open="${escapeAttr(s.id)}">Открыть</button>
+                <button type="button" class="practice-skill-del-btn" data-sgr-del="${escapeAttr(s.id)}">✕</button>
+              </div>`).join('')
+              : '<p class="practice-empty">Нет навыков. Нажми «Из карты» или добавь вручную.</p>'}
+          </div>
+        </div>`;
+
+      mount.querySelector('[data-sgr-sync]')?.addEventListener('click', () => {
+        const roadmap = normalizeRoadmap(entry);
+        const existingIds = new Set(skills.map((s) => s.id));
+        (roadmap.nodes || []).filter((n) => n.data?.status === 'Core' || n.data?.status === 'Main').forEach((node) => {
+          if (existingIds.has(node.id)) return;
+          const reqs = getDefReqs(node.id);
+          skills.push({ id: node.id, label: node.data?.label || node.id, color: node.data?.color || '#888', requirements: { ...reqs }, averages: getDefAvgs(reqs) });
+        });
+        sgrData.skills = skills;
+        saveSgrData(profession, sgrData);
+        bindSkillGapEditor();
+      });
+
+      mount.querySelector('[data-sgr-add]')?.addEventListener('click', () => {
+        const label = prompt('Название навыка:');
+        if (!label?.trim()) return;
+        const reqs = { intern: 20, junior: 40, middle: 65, senior: 85 };
+        skills.push({ id: `custom-${Date.now()}`, label: label.trim(), color: '#888', requirements: { ...reqs }, averages: getDefAvgs(reqs) });
+        sgrData.skills = skills;
+        saveSgrData(profession, sgrData);
+        bindSkillGapEditor();
+      });
+
+      mount.querySelectorAll('[data-sgr-open]').forEach((btn) => btn.addEventListener('click', () => { state.sgrSkillId = btn.dataset.sgrOpen; bindSkillGapEditor(); }));
+      mount.querySelectorAll('[data-sgr-del]').forEach((btn) => btn.addEventListener('click', () => {
+        if (!confirm('Удалить навык?')) return;
+        sgrData.skills = skills.filter((s) => s.id !== btn.dataset.sgrDel);
+        saveSgrData(profession, sgrData);
+        bindSkillGapEditor();
+      }));
+      return;
+    }
+
+    const skill = skills.find((s) => s.id === state.sgrSkillId);
+    if (!skill) { state.sgrSkillId = null; bindSkillGapEditor(); return; }
+
+    const grades = ['intern', 'junior', 'middle', 'senior'];
+    const gradeLabels = { intern: 'Стажёр', junior: 'Junior', middle: 'Middle', senior: 'Senior' };
+
+    mount.innerHTML = `
+      <div class="practice-editor">
+        <div class="practice-editor-toolbar">
+          <button type="button" class="dev-secondary" data-sgr-back>← Назад</button>
+          <strong>${escapeHtml(skill.label)}</strong>
+          <button type="button" class="dev-primary" data-sgr-skill-save>Сохранить</button>
+        </div>
+        <div class="sgr-admin-grid">
+          <div></div>${grades.map((g) => `<strong class="sgr-admin-grade-head">${gradeLabels[g]}</strong>`).join('')}
+          <span class="sgr-admin-row-label">Требования (%)</span>${grades.map((g) => `<input type="number" min="0" max="100" value="${skill.requirements[g] ?? 50}" data-sgr-req="${g}">`).join('')}
+          <span class="sgr-admin-row-label">Среднее рынка (%)</span>${grades.map((g) => `<input type="number" min="0" max="100" value="${skill.averages[g] ?? 40}" data-sgr-avg="${g}">`).join('')}
+        </div>
+      </div>`;
+
+    mount.querySelector('[data-sgr-back]')?.addEventListener('click', () => { state.sgrSkillId = null; bindSkillGapEditor(); });
+    mount.querySelector('[data-sgr-skill-save]')?.addEventListener('click', () => {
+      grades.forEach((g) => {
+        const r = mount.querySelector(`[data-sgr-req="${g}"]`);
+        const a = mount.querySelector(`[data-sgr-avg="${g}"]`);
+        if (r) skill.requirements[g] = Number(r.value);
+        if (a) skill.averages[g] = Number(a.value);
+      });
+      saveSgrData(profession, sgrData);
+      state.sgrSkillId = null;
+      bindSkillGapEditor();
+    });
+  };
+
   const renderLearningEditor = () => {
     const fullRoadmap = state.learningMode === 'edit' && state.selectedSection === 'roadmap' && !!state.selectedEntry;
     document.body.classList.toggle('dev-roadmap-mode', fullRoadmap);
@@ -1967,7 +2099,8 @@
       roadmap: 'Дорожная карта',
       practice: 'Практика',
       grade: 'Грейд',
-      interview: 'Собеседование'
+      interview: 'Собеседование',
+      'skill-gap': 'Skill Gap Radar'
     };
 
     const body = {
@@ -1982,7 +2115,8 @@
           Редактор собеседования
           <textarea rows="16" data-learning-interview>${escapeHtml(data.interview || '')}</textarea>
         </label>
-      `
+      `,
+      'skill-gap': `<div data-sgr-editor-mount></div>`
     }[state.selectedSection];
 
     learningEditor.innerHTML = state.selectedSection === 'roadmap' ? `
@@ -2044,6 +2178,7 @@
       state.pendingConnection = null;
       state.roadmapFitOnce = null;
       state.practiceSkillId = null;
+      state.sgrSkillId = null;
       renderLearningEditor();
     });
 
@@ -2052,6 +2187,7 @@
         state.selectedSection = button.dataset.learningSection;
         if (state.selectedSection !== 'roadmap') state.pendingConnection = null;
         if (state.selectedSection !== 'practice') state.practiceSkillId = null;
+        if (state.selectedSection !== 'skill-gap') state.sgrSkillId = null;
         renderLearningEditor();
       });
     });
@@ -2059,6 +2195,7 @@
     if (state.selectedSection === 'roadmap') bindRoadmapEditor();
     if (state.selectedSection === 'practice') bindPracticeEditor();
     if (state.selectedSection === 'grade') bindGradeEditor();
+    if (state.selectedSection === 'skill-gap') bindSkillGapEditor();
 
     learningEditor.querySelector('[data-learning-save]')?.addEventListener('click', async () => {
       const store = getLearningStore();
@@ -2069,6 +2206,8 @@
         try { current.grade = JSON.parse(gradeRaw); } catch { current.grade = gradeRaw; }
       }
       current.interview = learningEditor.querySelector('[data-learning-interview]')?.value ?? current.interview;
+      const freshStore = getLearningStore();
+      if (freshStore[state.selectedEntry]?.skillGap) current.skillGap = freshStore[state.selectedEntry].skillGap;
       store[state.selectedEntry] = current;
       write(K.learningByItem, store);
       await saveRoadmapToBackend(state.selectedEntry, current);
