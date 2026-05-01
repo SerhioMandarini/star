@@ -7,7 +7,7 @@
   const ROADMAP_PROGRESS_KEY = 'roadstar-roadmap-progress-by-user';
   const PRACTICE_PROGRESS_KEY = 'roadstar-practice-progress-by-user';
   const ARTICLES_KEY = 'roadstar-articles';
-  const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:3000' : '';
+  const API_BASE = window.location.protocol === 'file:' || (window.location.port && window.location.port !== '3000') ? 'http://localhost:3000' : '';
 
   const plusLink = document.querySelector('[data-learning-plus-link]');
   const plusBadge = document.querySelector('[data-plus-badge]');
@@ -47,6 +47,8 @@
 
   let currentUser = null;
   let backendAvailable = true;
+  let backendLearningEntry = null;
+  let backendRoadmapProgress = null;
 
   const escapeHtml = (value) => String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -56,9 +58,14 @@
     .replaceAll("'", '&#39;');
 
   const currentItem = () => new URLSearchParams(window.location.search).get('item') || document.querySelector('[data-learning-title]')?.textContent?.trim() || 'Обучение';
+  const syncLearningTitle = () => {
+    const titleNode = document.querySelector('[data-learning-title]');
+    if (titleNode) titleNode.textContent = currentItem();
+  };
   const currentUserKey = () => currentUser?.email || readJson(SESSION_KEY, null)?.email || 'guest';
   const progressMap = (key) => readJson(key, {});
   const writeProgressMap = (key, value) => localStorage.setItem(key, JSON.stringify(value));
+  const localProgressKey = () => `${currentUserKey()}::${currentItem()}`;
 
   const safeUser = (user) => ({
     id: user.id,
@@ -139,6 +146,9 @@
   };
 
   const getLearningEntry = () => {
+    if (backendLearningEntry?.roadmap?.nodes?.length) {
+      return backendLearningEntry;
+    }
     const item = currentItem();
     const store = readJson('roadstar-learning-by-item', {});
     const saved = store[item];
@@ -151,6 +161,61 @@
       try { localStorage.setItem('roadstar-learning-by-item', JSON.stringify({ ...store, [item]: entry })); } catch { /* ignore */ }
     }
     return entry;
+  };
+
+  const loadBackendRoadmap = async () => {
+    try {
+      const profession = currentItem();
+      const response = await fetch(apiUrl(`/api/roadmaps/${encodeURIComponent(profession)}`), { credentials: 'include' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || data.error || 'roadmap');
+      const localEntry = getLearningEntry();
+      const remoteRoadmap = data.data || data.roadmap || data;
+      const remoteLooksGenerated = (remoteRoadmap.nodes || []).some((node) => String(node.id || '').endsWith('-foundation'));
+      if (localEntry?.roadmap?.nodes?.length > (remoteRoadmap.nodes || []).length && remoteLooksGenerated) {
+        backendLearningEntry = localEntry;
+        fetch(apiUrl(`/api/roadmaps/${encodeURIComponent(profession)}`), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ title: profession, data: localEntry.roadmap })
+        }).catch(() => {});
+        return backendLearningEntry;
+      }
+      backendLearningEntry = {
+        ...fallbackLearningEntry(profession),
+        roadmap: remoteRoadmap,
+        title: data.title || profession
+      };
+      const store = readJson('roadstar-learning-by-item', {});
+      localStorage.setItem('roadstar-learning-by-item', JSON.stringify({ ...store, [profession]: backendLearningEntry }));
+      return backendLearningEntry;
+    } catch {
+      backendLearningEntry = null;
+      return getLearningEntry();
+    }
+  };
+
+  const loadBackendRoadmapProgress = async () => {
+    try {
+      const response = await fetch(apiUrl(`/api/roadmaps/${encodeURIComponent(currentItem())}/progress`), { credentials: 'include' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || data.error || 'progress');
+      const localProgress = getRoadmapProgress();
+      const remoteProgress = data.progress || { completed: {}, nodeStatus: {} };
+      const localDone = Object.keys(localProgress.completed || {}).length;
+      const remoteDone = Object.keys(remoteProgress.completed || {}).length;
+      if (!data.updated_at && localDone > remoteDone) {
+        setRoadmapProgress(localProgress);
+        return localProgress;
+      }
+      backendRoadmapProgress = remoteProgress;
+      setRoadmapProgress(backendRoadmapProgress, { skipBackend: true });
+      return backendRoadmapProgress;
+    } catch {
+      backendRoadmapProgress = null;
+      return getRoadmapProgress();
+    }
   };
 
   const formatMultiLine = (value) => {
@@ -371,14 +436,33 @@
   };
 
   const getRoadmapProgress = () => {
+    if (backendRoadmapProgress) {
+      return backendRoadmapProgress;
+    }
     const map = progressMap(ROADMAP_PROGRESS_KEY);
-    return map[`${currentUserKey()}::${currentItem()}`] || { completed: {} };
+    return map[localProgressKey()] || { completed: {}, nodeStatus: {} };
   };
 
-  const setRoadmapProgress = (value) => {
+  const setRoadmapProgress = (value, options = {}) => {
+    const normalized = {
+      ...value,
+      completed: value?.completed || {},
+      nodeStatus: value?.nodeStatus || {}
+    };
+    backendRoadmapProgress = normalized;
     const map = progressMap(ROADMAP_PROGRESS_KEY);
-    map[`${currentUserKey()}::${currentItem()}`] = value;
+    map[localProgressKey()] = normalized;
     writeProgressMap(ROADMAP_PROGRESS_KEY, map);
+    if (!options.skipBackend) {
+      fetch(apiUrl(`/api/roadmaps/${encodeURIComponent(currentItem())}/progress`), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ progress: normalized })
+      }).catch(() => {
+        backendAvailable = false;
+      });
+    }
   };
 
   const normalizePracticeProgress = (value = {}, planLength = 0) => {
@@ -410,41 +494,82 @@
 
   const setSectionProgress = (label, percent) => {
     const value = Math.max(0, Math.min(100, Math.round(percent || 0)));
+    let stripNode = document.querySelector('[data-learning-progress-strip]');
+    if (!stripNode && main) {
+      stripNode = document.createElement('section');
+      stripNode.className = 'learning-progress-strip';
+      stripNode.dataset.learningProgressStrip = '';
+      stripNode.innerHTML = `
+        <div class="learning-progress-head">
+          <span data-learning-progress-label></span>
+          <strong data-learning-progress-value></strong>
+        </div>
+        <div class="learning-progress-unified">
+          <span class="learning-progress-unified-fill" data-learning-progress-fill></span>
+          <div class="learning-progress-unified-marks">
+            <span>25%</span><span>50%</span><span>75%</span><span>100%</span>
+          </div>
+        </div>
+      `;
+      const canvas = document.querySelector('[data-learning-canvas]');
+      main.insertBefore(stripNode, canvas || null);
+    }
     const labelNode = document.querySelector('[data-learning-progress-label]');
     const valueNode = document.querySelector('[data-learning-progress-value]');
     const fillNode = document.querySelector('[data-learning-progress-fill]');
+    if (stripNode) {
+      stripNode.hidden = false;
+      stripNode.style.display = 'grid';
+      stripNode.style.visibility = 'visible';
+      stripNode.style.opacity = '1';
+    }
     if (labelNode) labelNode.textContent = label;
-    if (valueNode) valueNode.textContent = `${value}%`;
-    if (fillNode) fillNode.style.width = `${value}%`;
+    if (valueNode) {
+      valueNode.textContent = `${value}%`;
+      valueNode.style.display = '';
+      valueNode.style.visibility = 'visible';
+      valueNode.style.opacity = '1';
+      valueNode.style.color = 'var(--learning-text)';
+    }
+    if (fillNode) {
+      fillNode.style.display = 'block';
+      fillNode.style.width = `${value}%`;
+    }
+  };
+
+  const calculateRoadmapProgress = (nodes, progress = getRoadmapProgress()) => {
+    const roadmapNodes = Array.isArray(nodes) ? nodes : [];
+    const completed = progress?.completed || {};
+    const nodeStatus = progress?.nodeStatus || {};
+    const total = roadmapNodes.length;
+    const done = roadmapNodes.filter((node) => (
+      completed[String(node.id)] || nodeStatus[String(node.id)] === 'done'
+    )).length;
+    return {
+      total,
+      done,
+      percent: total > 0 ? Math.round((done / total) * 100) : 0
+    };
   };
 
   const updateRoadmapProgressUI = async (nodes) => {
     const progress = getRoadmapProgress();
-
     const entry = getLearningEntry();
     const roadmapNodes = entry?.roadmap?.nodes || nodes || [];
-
-    const total = Array.isArray(roadmapNodes) ? roadmapNodes.length : 0;
-
-    const done = Array.isArray(roadmapNodes)
-      ? roadmapNodes.filter((node) => getNodeStatus(node.id) === 'done').length
-      : 0;
+    const calculated = calculateRoadmapProgress(roadmapNodes, progress);
+    setSectionProgress('Прогресс дорожной карты', calculated.percent);
 
     try {
-      const response = await fetch('http://localhost:3000/api/roadmaps/progress', {
+      await fetch(apiUrl(`/api/roadmaps/${encodeURIComponent(currentItem())}/progress/calculate`), {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
-          total,
-          completed: done
+          progress
         })
       });
-
-      const data = await response.json();
-      setSectionProgress('Прогресс дорожной карты', data.percent);
     } catch (error) {
-      const percent = total > 0 ? Math.round((done / total) * 100) : 0;
-      setSectionProgress('Прогресс дорожной карты', percent);
+      // Display already uses local state; backend is only a persistence/calculation companion here.
     }
   };
 
@@ -467,6 +592,16 @@
     if (tokensPopover) tokensPopover.hidden = true;
     if (themeMenu) themeMenu.hidden = true;
     if (overlay) overlay.hidden = true;
+  };
+
+  const resetCurrentRoadmapProgress = () => {
+    backendRoadmapProgress = { completed: {}, nodeStatus: {} };
+    const map = progressMap(ROADMAP_PROGRESS_KEY);
+    delete map[localProgressKey()];
+    writeProgressMap(ROADMAP_PROGRESS_KEY, map);
+    setRoadmapProgress(backendRoadmapProgress);
+    setSectionProgress('Прогресс дорожной карты', 0);
+    renderRoadmapBoard();
   };
 
   const NODE_W = 196;
@@ -571,8 +706,15 @@
     };
     updateDoneBtn();
     doneBtn.onclick = () => {
-      setNodeStatus(node.id, 'done');
+      const nextProgress = {
+        ...getRoadmapProgress(),
+        completed: { ...(getRoadmapProgress().completed || {}), [node.id]: true },
+        nodeStatus: { ...(getRoadmapProgress().nodeStatus || {}), [node.id]: 'done' }
+      };
+      setRoadmapProgress(nextProgress);
       updateDoneBtn();
+      const roadmapNodes = getLearningEntry().roadmap?.nodes || [];
+      setSectionProgress('Прогресс дорожной карты', calculateRoadmapProgress(roadmapNodes, nextProgress).percent);
       renderRoadmapBoard();
     };
   };
@@ -1254,6 +1396,20 @@
     }
   });
 
+  const actionsCard = document.querySelector('.learning-actions-card');
+  if (actionsCard && !actionsCard.querySelector('[data-learning-reset-progress]')) {
+    const resetButton = document.createElement('button');
+    resetButton.type = 'button';
+    resetButton.className = 'learning-action-button';
+    resetButton.dataset.learningResetProgress = '';
+    resetButton.textContent = 'Сбросить прогресс';
+    resetButton.addEventListener('click', () => {
+      resetCurrentRoadmapProgress();
+      showActionStatus('Прогресс этой профессии сброшен.');
+    });
+    actionsCard.insertBefore(resetButton, actionStatus || null);
+  }
+
   themeToggle?.addEventListener('click', (event) => {
     event.stopPropagation();
     if (themeMenu) themeMenu.hidden = !themeMenu.hidden;
@@ -1386,15 +1542,18 @@
   if (plusBadge) new MutationObserver(syncPlusLink).observe(plusBadge, { attributes: true, attributeFilter: ['hidden'] });
   if (plusLink) new MutationObserver(syncPlusLink).observe(plusLink, { childList: true, subtree: true });
 
-  setupAuthModal();
-  syncUserState();
-  syncPlusLink();
-  applyTheme(localStorage.getItem(THEME_KEY) || 'white');
-  setupTabs();
-  activateTab('roadmap');
-  renderRoadmapBoard();
-  renderGradePanel();
-  renderInterviewPanel();
+  (async () => {
+    await setupAuthModal();
+    await syncUserState();
+    syncLearningTitle();
+    await loadBackendRoadmap();
+    await loadBackendRoadmapProgress();
+    syncPlusLink();
+    applyTheme(localStorage.getItem(THEME_KEY) || 'white');
+    setupTabs();
+    activateTab('roadmap');
+    renderRoadmapBoard();
+  })();
   window.addEventListener('resize', () => {
     if (document.querySelector('[data-learning-panel="roadmap"]')?.hidden) return;
     clearTimeout(window.__roadmapResizeTimer);

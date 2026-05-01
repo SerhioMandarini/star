@@ -1,7 +1,7 @@
 ﻿document.addEventListener('DOMContentLoaded', () => {
   if (document.body.dataset.page !== 'dev') return;
 
-  const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:3000' : '';
+  const API_BASE = window.location.protocol === 'file:' || (window.location.port && window.location.port !== '3000') ? 'http://localhost:3000' : '';
   const apiUrl = (path) => `${API_BASE}${path}`;
 
   const K = {
@@ -209,6 +209,48 @@
     store[name] = next;
     write(K.learningByItem, store);
     return next;
+  };
+
+  const loadRoadmapFromBackend = async (name) => {
+    try {
+      const response = await fetch(apiUrl(`/api/roadmaps/${encodeURIComponent(name)}`), { credentials: 'include' });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.detail || payload.error || 'roadmap');
+      const store = getLearningStore();
+      const current = store[name] || {};
+      const localRoadmap = normalizeRoadmap(current);
+      const remoteRoadmap = normalizeRoadmap({ roadmap: payload.data || payload.roadmap || payload });
+      const remoteLooksGenerated = (remoteRoadmap.nodes || []).some((node) => String(node.id || '').endsWith('-foundation'));
+      if (current.roadmap && localRoadmap.nodes.length > remoteRoadmap.nodes.length && remoteLooksGenerated) {
+        await saveRoadmapToBackend(name, current);
+        return current;
+      }
+      const next = {
+        ...current,
+        roadmap: remoteRoadmap
+      };
+      store[name] = next;
+      write(K.learningByItem, store);
+      return next;
+    } catch {
+      return ensureProfessionData(name);
+    }
+  };
+
+  const saveRoadmapToBackend = async (name, entry) => {
+    try {
+      const roadmap = normalizeRoadmap(entry);
+      const response = await fetch(apiUrl(`/api/roadmaps/${encodeURIComponent(name)}`), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ title: name, data: roadmap })
+      });
+      if (!response.ok) throw new Error('roadmap');
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   const parseLines = (value) => String(value || '').split('\n').map((item) => item.trim()).filter(Boolean);
@@ -460,12 +502,12 @@
     });
 
     learningDirectory.querySelectorAll('[data-edit-profession]').forEach((button) => {
-      button.addEventListener('click', () => {
+      button.addEventListener('click', async () => {
         state.learningMode = 'edit';
         state.selectedEntry = button.dataset.editProfession;
         state.selectedSection = 'roadmap';
         state.selectedRoadmapNodeId = null;
-        ensureProfessionData(state.selectedEntry);
+        await loadRoadmapFromBackend(state.selectedEntry);
         renderLearningEditor();
       });
     });
@@ -2018,7 +2060,7 @@
     if (state.selectedSection === 'practice') bindPracticeEditor();
     if (state.selectedSection === 'grade') bindGradeEditor();
 
-    learningEditor.querySelector('[data-learning-save]')?.addEventListener('click', () => {
+    learningEditor.querySelector('[data-learning-save]')?.addEventListener('click', async () => {
       const store = getLearningStore();
       const current = { ...(store[state.selectedEntry] || ensureProfessionData(state.selectedEntry)) };
       current.roadmap = normalizeRoadmap(current);
@@ -2029,6 +2071,7 @@
       current.interview = learningEditor.querySelector('[data-learning-interview]')?.value ?? current.interview;
       store[state.selectedEntry] = current;
       write(K.learningByItem, store);
+      await saveRoadmapToBackend(state.selectedEntry, current);
     });
   };
 

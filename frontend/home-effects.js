@@ -75,7 +75,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const getRoadmapNodeTotal = (profession) => {
     const total = learningStore?.[profession]?.roadmap?.nodes?.length;
-    return Number(total || 3);
+    return Math.max(1, Number(total || 0) || 4);
+  };
+
+  const getCompletedRoadmapNodes = (value) => {
+    const completed = value?.completed && typeof value.completed === 'object' ? value.completed : {};
+    const nodeStatus = value?.nodeStatus && typeof value.nodeStatus === 'object' ? value.nodeStatus : {};
+    return new Set([
+      ...Object.keys(completed).filter((id) => completed[id]),
+      ...Object.keys(nodeStatus).filter((id) => nodeStatus[id] === 'done')
+    ]).size;
   };
 
   const getPracticePlanLength = (profession) => {
@@ -93,20 +102,25 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const professionMap = new Map();
+  const currentUserRoadmaps = Object.entries(roadmapProgress)
+    .filter(([key]) => key.startsWith(`${currentUserKey}::`));
+  const roadmapEntries = currentUserRoadmaps.length ? currentUserRoadmaps : Object.entries(roadmapProgress);
 
-  Object.entries(roadmapProgress)
-    .filter(([key]) => key.startsWith(`${currentUserKey}::`))
+  roadmapEntries
     .forEach(([key, value]) => {
       const profession = key.split('::')[1] || 'Профессия';
       const totalNodes = Math.max(1, getRoadmapNodeTotal(profession));
-      const completedNodes = Object.keys(value?.completed || {}).filter((id) => value.completed[id]).length;
+      const completedNodes = getCompletedRoadmapNodes(value);
       const current = professionMap.get(profession) || { profession, roadmap: 0, practice: 0 };
-      current.roadmap = Math.round((Math.min(completedNodes, totalNodes) / totalNodes) * 100);
+      current.roadmap = Math.max(current.roadmap, Math.round((Math.min(completedNodes, totalNodes) / totalNodes) * 100));
       professionMap.set(profession, current);
     });
 
-  Object.entries(practiceProgress)
-    .filter(([key]) => key.startsWith(`${currentUserKey}::`))
+  const currentUserPractice = Object.entries(practiceProgress)
+    .filter(([key]) => key.startsWith(`${currentUserKey}::`));
+  const practiceEntries = currentUserPractice.length ? currentUserPractice : Object.entries(practiceProgress);
+
+  practiceEntries
     .forEach(([key, value]) => {
       const profession = key.split('::')[1] || 'Профессия';
       const totalSteps = Math.max(1, Number(value?.planLength || 0) || getPracticePlanLength(profession));
@@ -117,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
   const topProfessions = Array.from(professionMap.values())
-    .map((e) => ({ ...e, total: Math.round(e.roadmap * 0.6 + e.practice * 0.4) }))
+    .map((e) => ({ ...e, total: e.roadmap }))
     .filter((e) => e.total > 0 || e.roadmap > 0 || e.practice > 0)
     .sort((a, b) => b.total - a.total)
     .slice(0, 3);

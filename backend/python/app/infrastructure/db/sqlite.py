@@ -29,5 +29,30 @@ class SQLiteProvider:
             );
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS roadmaps (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              profession_id TEXT UNIQUE NOT NULL,
+              title TEXT NOT NULL,
+              data_json TEXT NOT NULL,
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL
+            );
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS user_roadmap_progress (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              user_id INTEGER NOT NULL,
+              profession_id TEXT NOT NULL,
+              progress_json TEXT NOT NULL,
+              created_at TEXT NOT NULL,
+              updated_at TEXT NOT NULL,
+              UNIQUE(user_id, profession_id)
+            );
+            """
+        )
         conn.commit()
         conn.close()
