@@ -952,15 +952,223 @@
     });
   };
 
+  const GRADE_TYPE_LABELS = { single: 'Один ответ', multi: 'Несколько ответов', compiler: 'Компилятор', detailed: 'Развёрнутый ответ' };
+
   const renderGradePanel = () => {
     const panel = document.querySelector('[data-learning-panel="grade"]');
     if (!panel) return;
-    setSectionProgress('Прогресс грейда', 0);
-    panel.innerHTML = `
-      <div class="learning-question-card">
-        <h3>Тест по грейду</h3>
-        <p>Грейд-оценка пока работает в тестовом режиме. Здесь позже будет сценарий вопросов из админ-панели.</p>
-      </div>`;
+
+    const entry = getLearningEntry();
+    let gradeData = null;
+    try {
+      const g = entry.grade;
+      if (g && typeof g === 'object' && Array.isArray(g.questions)) gradeData = g;
+      else if (typeof g === 'string' && g.trim().startsWith('{')) {
+        const p = JSON.parse(g);
+        if (Array.isArray(p.questions)) gradeData = p;
+      }
+    } catch {}
+
+    if (!gradeData || !gradeData.questions.length) {
+      setSectionProgress('Прогресс грейда', 0);
+      panel.innerHTML = `
+        <div class="learning-question-card">
+          <h3>Тест по грейду</h3>
+          <p>Тест ещё не настроен. Открой панель управления и добавь вопросы в разделе «Грейд».</p>
+        </div>`;
+      return;
+    }
+
+    const questions = gradeData.questions;
+    const maxScore = questions.reduce((s, q) => s + (Number(q.points) || 1), 0);
+    let phase = 'start';
+    let currentQ = 0;
+    const answers = {};
+
+    const getScore = () => {
+      let s = 0;
+      questions.forEach((q) => {
+        const a = answers[q.id];
+        if (q.type === 'single' || q.type === 'multi') {
+          if (q.options && q.options.length) {
+            const correct = (q.correct || []).slice().sort().join(',');
+            const given = (Array.isArray(a) ? a.slice().sort() : []).join(',');
+            if (correct === given) s += (Number(q.points) || 1);
+          } else if (a && String(a).trim()) {
+            s += (Number(q.points) || 1);
+          }
+        } else if (a && String(a).trim()) {
+          s += (Number(q.points) || 1);
+        }
+      });
+      return s;
+    };
+
+    const isCorrectAnswer = (q) => {
+      const a = answers[q.id];
+      if (q.type === 'single' || q.type === 'multi') {
+        if (q.options && q.options.length) {
+          return (q.correct || []).slice().sort().join(',') === (Array.isArray(a) ? a.slice().sort() : []).join(',');
+        }
+        return !!(a && String(a).trim());
+      }
+      return !!(a && String(a).trim());
+    };
+
+    const saveCurrentAnswer = () => {
+      const q = questions[currentQ];
+      if (!q) return;
+      if ((q.type === 'single' || q.type === 'multi') && q.options && q.options.length) {
+        const checked = Array.from(panel.querySelectorAll('input[name="grade-q-opt"]:checked')).map((inp) => Number(inp.value));
+        answers[q.id] = checked;
+      } else if (q.type === 'compiler') {
+        answers[q.id] = panel.querySelector('[data-grade-code]')?.value || '';
+      } else {
+        answers[q.id] = panel.querySelector('[data-grade-text]')?.value || '';
+      }
+    };
+
+    const renderStart = () => {
+      setSectionProgress('Прогресс грейда', 0);
+      panel.innerHTML = `
+        <div class="learning-question-card grade-start-card">
+          <div class="grade-start-icon">📋</div>
+          <h3 class="grade-start-title">Тест на грейд</h3>
+          <p class="grade-start-desc">Ответь на вопросы и узнай свой текущий уровень по теме.</p>
+          <div class="grade-meta-row">
+            <span class="grade-meta-chip">${questions.length} вопросов</span>
+            <span class="grade-meta-chip">Макс. ${maxScore} баллов</span>
+          </div>
+          <button type="button" class="learning-run-btn" data-grade-start>Начать тест</button>
+        </div>`;
+      panel.querySelector('[data-grade-start]')?.addEventListener('click', () => {
+        phase = 'test';
+        currentQ = 0;
+        renderQuestion();
+      });
+    };
+
+    const renderQuestion = () => {
+      const q = questions[currentQ];
+      const progress = Math.round((currentQ / questions.length) * 100);
+      setSectionProgress('Прогресс грейда', progress);
+      const isLast = currentQ === questions.length - 1;
+      const prev = answers[q.id];
+
+      let answerHtml = '';
+      if ((q.type === 'single' || q.type === 'multi') && q.options && q.options.length) {
+        const inputType = q.type === 'multi' ? 'checkbox' : 'radio';
+        answerHtml = `<div class="grade-options">${q.options.map((opt, oi) => `
+          <label class="grade-option-label">
+            <input type="${inputType}" name="grade-q-opt" value="${oi}" ${Array.isArray(prev) && prev.includes(oi) ? 'checked' : ''}>
+            <span>${escapeHtml(opt)}</span>
+          </label>`).join('')}</div>`;
+      } else if (q.type === 'compiler') {
+        const lang = q.language || 'javascript';
+        answerHtml = `
+          <div class="practice-code-editor">
+            <div class="practice-code-editor-header">
+              <div class="practice-code-dots"><i></i><i></i><i></i></div>
+              <strong>${escapeHtml(lang.toUpperCase())}</strong>
+              ${lang === 'javascript' ? '<button type="button" class="practice-run-btn" data-grade-run>▶ Run</button>' : ''}
+            </div>
+            <textarea class="practice-code-textarea" rows="8" data-grade-code spellcheck="false">${escapeHtml(prev !== undefined ? prev : (q.starterCode || ''))}</textarea>
+          </div>
+          <div class="practice-output" data-grade-output hidden></div>`;
+      } else {
+        const isDetailed = q.type === 'detailed';
+        answerHtml = isDetailed
+          ? `<textarea class="grade-detail-textarea" rows="5" placeholder="Развёрнутый ответ..." data-grade-text>${escapeHtml(prev || '')}</textarea>`
+          : `<input type="text" class="grade-text-input" placeholder="Введи ответ..." value="${escapeAttr(prev || '')}" data-grade-text>`;
+      }
+
+      panel.innerHTML = `
+        <div class="learning-question-card grade-test-card">
+          <div class="grade-progress-header">
+            <span class="grade-q-counter">Вопрос ${currentQ + 1} / ${questions.length}</span>
+            <div class="grade-progress-bar-wrap">
+              <div class="grade-progress-bar-fill" style="width:${progress}%"></div>
+            </div>
+            <span class="grade-q-pts-hint">${q.points || 1} б.</span>
+          </div>
+          <span class="grade-q-type-chip grade-q-type-${q.type}">${escapeHtml(GRADE_TYPE_LABELS[q.type] || q.type)}</span>
+          <h4 class="grade-question-text">${escapeHtml(q.text)}</h4>
+          ${answerHtml}
+          <div class="grade-nav">
+            ${currentQ > 0 ? '<button type="button" class="learning-profile-btn" data-grade-prev>← Назад</button>' : '<span></span>'}
+            <button type="button" class="learning-run-btn" data-grade-next>${isLast ? 'Завершить тест' : 'Далее →'}</button>
+          </div>
+        </div>`;
+
+      if (q.type === 'compiler' && (q.language || 'javascript') === 'javascript') {
+        panel.querySelector('[data-grade-run]')?.addEventListener('click', () => {
+          const code = panel.querySelector('[data-grade-code]')?.value || '';
+          const out = panel.querySelector('[data-grade-output]');
+          if (!out) return;
+          out.hidden = false;
+          try {
+            const logs = [];
+            new Function('console', code)({ log: (...a) => logs.push(a.join(' ')), error: (...a) => logs.push('Error: ' + a.join(' ')), warn: (...a) => logs.push('Warn: ' + a.join(' ')) });
+            out.textContent = logs.join('\n') || '(нет вывода)';
+            out.className = 'practice-output';
+          } catch (err) {
+            out.textContent = err.message;
+            out.className = 'practice-output is-error';
+          }
+        });
+      }
+
+      panel.querySelector('[data-grade-prev]')?.addEventListener('click', () => {
+        saveCurrentAnswer();
+        currentQ--;
+        renderQuestion();
+      });
+
+      panel.querySelector('[data-grade-next]')?.addEventListener('click', () => {
+        saveCurrentAnswer();
+        if (isLast) { phase = 'results'; renderResults(); }
+        else { currentQ++; renderQuestion(); }
+      });
+    };
+
+    const renderResults = () => {
+      const score = getScore();
+      const percent = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
+      const gradeLabel = percent >= 90 ? 'Senior' : percent >= 70 ? 'Middle' : percent >= 50 ? 'Junior' : 'Стажёр';
+      setSectionProgress('Прогресс грейда', percent);
+
+      panel.innerHTML = `
+        <div class="learning-question-card grade-results-card">
+          <h3 class="grade-results-title">Результаты теста</h3>
+          <div class="grade-score-display">
+            <span class="grade-score-num">${score}</span>
+            <span class="grade-score-denom">/ ${maxScore}</span>
+          </div>
+          <div class="grade-result-label">${gradeLabel}</div>
+          <div class="grade-result-pct">${percent}%</div>
+          <div class="grade-answers-review">
+            ${questions.map((q, qi) => {
+              const ok = isCorrectAnswer(q);
+              return `<div class="grade-review-row ${ok ? 'is-correct' : 'is-wrong'}">
+                <span class="grade-review-icon">${ok ? '✓' : '✗'}</span>
+                <span class="grade-review-num">${qi + 1}.</span>
+                <span class="grade-review-text">${escapeHtml((q.text || '').substring(0, 64))}</span>
+                <span class="grade-review-pts">${ok ? `+${q.points || 1}` : '0'} / ${q.points || 1}</span>
+              </div>`;
+            }).join('')}
+          </div>
+          <button type="button" class="learning-run-btn" data-grade-restart>Пройти снова</button>
+        </div>`;
+
+      panel.querySelector('[data-grade-restart]')?.addEventListener('click', () => {
+        Object.keys(answers).forEach((k) => delete answers[k]);
+        currentQ = 0;
+        phase = 'start';
+        renderStart();
+      });
+    };
+
+    renderStart();
   };
 
   const renderInterviewPanel = () => {

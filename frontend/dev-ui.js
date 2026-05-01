@@ -1560,6 +1560,329 @@
     renderTaskList();
   };
 
+  const GRADE_QUESTION_TYPES = {
+    single: 'Один ответ',
+    multi: 'Несколько ответов',
+    compiler: 'Компилятор',
+    detailed: 'Развёрнутый ответ'
+  };
+
+  const GRADE_DEMO_TEST = {
+    questions: [
+      { id: 'gq1', type: 'single', text: 'Что такое замыкание (closure) в JavaScript?', points: 1, options: ['Функция с доступом к переменным внешней области видимости', 'Метод массива', 'Способ объявить переменную', 'Тип данных'], correct: [0], language: 'javascript', starterCode: '', successCriteria: '' },
+      { id: 'gq2', type: 'compiler', text: 'Напиши функцию sum(a, b), которая возвращает сумму двух чисел. Выведи результат sum(3, 7) через console.log.', points: 2, options: [], correct: [], language: 'javascript', starterCode: 'function sum(a, b) {\n  // твой код\n}\n\nconsole.log(sum(3, 7));', successCriteria: '10' },
+      { id: 'gq3', type: 'single', text: 'Какой метод массива создаёт новый массив с результатами вызова функции для каждого элемента?', points: 1, options: ['filter', 'map', 'reduce', 'forEach'], correct: [1], language: 'javascript', starterCode: '', successCriteria: '' },
+      { id: 'gq4', type: 'compiler', text: 'Напиши функцию, которая принимает массив чисел и возвращает только чётные. Выведи результат для [1,2,3,4,5,6].', points: 2, options: [], correct: [], language: 'javascript', starterCode: 'function getEven(arr) {\n  // твой код\n}\n\nconsole.log(getEven([1,2,3,4,5,6]));', successCriteria: '[2, 4, 6]' },
+      { id: 'gq5', type: 'multi', text: 'Какие из этих методов изменяют исходный массив?', points: 2, options: ['push', 'map', 'splice', 'filter', 'sort'], correct: [0, 2, 4], language: 'javascript', starterCode: '', successCriteria: '' },
+      { id: 'gq6', type: 'compiler', text: 'Создай промис, который выполняется через 0 мс и возвращает строку "done". Выведи результат через .then().', points: 2, options: [], correct: [], language: 'javascript', starterCode: 'const p = new Promise((resolve) => {\n  // твой код\n});\n\np.then(val => console.log(val));', successCriteria: 'done' },
+      { id: 'gq7', type: 'single', text: 'Что возвращает typeof null?', points: 1, options: ['null', 'undefined', 'object', 'boolean'], correct: [2], language: 'javascript', starterCode: '', successCriteria: '' },
+      { id: 'gq8', type: 'detailed', text: 'Объясни разницу между let, const и var. В каких случаях используешь каждое из них?', points: 3, options: [], correct: [], language: 'text', starterCode: '', successCriteria: '' },
+      { id: 'gq9', type: 'compiler', text: 'Напиши функцию reverse(str), которая переворачивает строку. Выведи reverse("hello").', points: 2, options: [], correct: [], language: 'javascript', starterCode: 'function reverse(str) {\n  // твой код\n}\n\nconsole.log(reverse("hello"));', successCriteria: 'olleh' },
+      { id: 'gq10', type: 'single', text: 'Что выведет: console.log(0.1 + 0.2 === 0.3)?', points: 1, options: ['true', 'false', 'NaN', 'undefined'], correct: [1], language: 'javascript', starterCode: '', successCriteria: '' }
+    ]
+  };
+
+  const parseGradeData = (profession) => {
+    const store = getLearningStore();
+    const entry = store[profession] || {};
+    try {
+      const g = entry.grade;
+      if (g && typeof g === 'object' && Array.isArray(g.questions)) return g;
+      if (typeof g === 'string' && g.trim().startsWith('{')) {
+        const parsed = JSON.parse(g);
+        if (Array.isArray(parsed.questions)) return parsed;
+      }
+    } catch {}
+    return { questions: [] };
+  };
+
+  const persistGradeData = (profession, gradeData) => {
+    const store = getLearningStore();
+    const entry = store[profession] || ensureProfessionData(profession);
+    entry.grade = gradeData;
+    store[profession] = entry;
+    write(K.learningByItem, store);
+    const ta = learningEditor.querySelector('[data-learning-grade]');
+    if (ta) ta.value = JSON.stringify(gradeData);
+  };
+
+  const bindGradeEditor = () => {
+    const mount = learningEditor.querySelector('[data-grade-editor-mount]');
+    if (!mount) return;
+    const profession = state.selectedEntry;
+    if (!profession) { mount.innerHTML = '<p>Выбери профессию.</p>'; return; }
+
+    let gradeData = parseGradeData(profession);
+    const selected = new Set();
+
+    const syncJsonPreview = () => {
+      const ta = mount.querySelector('[data-ge-json-preview]');
+      if (ta) ta.value = JSON.stringify(gradeData, null, 2);
+      const hidden = learningEditor.querySelector('[data-learning-grade]');
+      if (hidden) hidden.value = JSON.stringify(gradeData);
+    };
+
+    const renderOptionsList = (q, qi) => {
+      const options = q.options || [];
+      const correct = q.correct || [];
+      const inputType = q.type === 'multi' ? 'checkbox' : 'radio';
+      return `
+        <div class="grade-options-editor">
+          <div class="grade-options-header">
+            <span class="grade-opt-hint">Отмечай правильные варианты слева</span>
+            <button type="button" class="dev-secondary" data-ge-add-option="${qi}">+ Вариант</button>
+          </div>
+          ${options.map((opt, oi) => `
+            <div class="grade-option-row">
+              <input type="${inputType}" name="correct-${qi}" value="${oi}" ${correct.includes(oi) ? 'checked' : ''} data-ge-correct="${qi}" data-oi="${oi}">
+              <input type="text" class="grade-opt-input" value="${escapeAttr(opt)}" data-ge-opt-text="${qi}" data-oi="${oi}" placeholder="Текст варианта">
+              <button type="button" class="practice-skill-del-btn" data-ge-del-option="${qi}" data-oi="${oi}">✕</button>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    };
+
+    const renderQuestionForm = (q, qi) => `
+      <div class="grade-question-form">
+        <div class="practice-task-row-2col">
+          <label>Тип ответа
+            <select data-qf-field="type" data-qf-idx="${qi}">
+              ${Object.entries(GRADE_QUESTION_TYPES).map(([v, l]) => `<option value="${v}" ${q.type === v ? 'selected' : ''}>${l}</option>`).join('')}
+            </select>
+          </label>
+          <label>Баллы
+            <input type="number" min="0" max="100" value="${q.points || 1}" data-qf-field="points" data-qf-idx="${qi}">
+          </label>
+          ${q.type === 'compiler' ? `<label>Язык
+            <select data-qf-field="language" data-qf-idx="${qi}">
+              ${['javascript', 'python', 'text'].map((l) => `<option value="${l}" ${q.language === l ? 'selected' : ''}>${l}</option>`).join('')}
+            </select>
+          </label>` : ''}
+        </div>
+        <label>Текст вопроса
+          <textarea rows="3" data-qf-field="text" data-qf-idx="${qi}">${escapeHtml(q.text || '')}</textarea>
+        </label>
+        ${(q.type === 'single' || q.type === 'multi') ? renderOptionsList(q, qi) : ''}
+        ${q.type === 'compiler' ? `
+          <label>Начальный код<textarea rows="4" style="font-family:monospace;font-size:12px" data-qf-field="starterCode" data-qf-idx="${qi}">${escapeHtml(q.starterCode || '')}</textarea></label>
+          <label>Ожидаемый вывод / критерии<textarea rows="2" data-qf-field="successCriteria" data-qf-idx="${qi}">${escapeHtml(q.successCriteria || '')}</textarea></label>
+        ` : ''}
+        ${q.type === 'detailed' ? `
+          <label>Критерии оценки<textarea rows="2" data-qf-field="successCriteria" data-qf-idx="${qi}">${escapeHtml(q.successCriteria || '')}</textarea></label>
+        ` : ''}
+        <div class="grade-form-actions">
+          <button type="button" class="dev-primary" data-qf-apply="${qi}">Применить</button>
+        </div>
+      </div>
+    `;
+
+    const renderQuestionCard = (q, qi) => {
+      const typeBadge = GRADE_QUESTION_TYPES[q.type] || q.type;
+      const isSelected = selected.has(qi);
+      return `
+        <div class="grade-question-card${isSelected ? ' is-selected' : ''}" data-ge-card="${qi}">
+          <div class="grade-question-header">
+            <input type="checkbox" class="ge-q-checkbox" data-q-check="${qi}" ${isSelected ? 'checked' : ''}>
+            <span class="grade-q-order">${qi + 1}.</span>
+            <span class="grade-q-text-preview">${escapeHtml((q.text || 'Без текста').substring(0, 72))}</span>
+            <span class="grade-q-type-badge grade-q-type-${q.type}">${escapeHtml(typeBadge)}</span>
+            <span class="grade-q-pts-badge">${q.points || 1} б.</span>
+            <div class="grade-q-controls">
+              <button type="button" class="dev-secondary grade-q-move-btn" data-q-up="${qi}" ${qi === 0 ? 'disabled' : ''} title="Выше">↑</button>
+              <button type="button" class="dev-secondary grade-q-move-btn" data-q-down="${qi}" ${qi === (gradeData.questions.length - 1) ? 'disabled' : ''} title="Ниже">↓</button>
+              <button type="button" class="dev-secondary" data-q-expand="${qi}">Изменить</button>
+              <button type="button" class="practice-skill-del-btn" data-q-delete="${qi}">✕</button>
+            </div>
+          </div>
+          <div class="grade-question-body" data-q-body="${qi}" hidden>
+            ${renderQuestionForm(q, qi)}
+          </div>
+        </div>
+      `;
+    };
+
+    const render = () => {
+      const questions = gradeData.questions || [];
+      const allSelected = questions.length > 0 && selected.size === questions.length;
+      const someSelected = selected.size > 0;
+      const totalPts = questions.reduce((s, q) => s + (Number(q.points) || 1), 0);
+
+      mount.innerHTML = `
+        <div class="grade-editor">
+          <div class="grade-editor-toolbar">
+            <label class="grade-select-all-label" title="Выбрать все">
+              <input type="checkbox" data-ge-select-all ${allSelected ? 'checked' : ''}> Все
+            </label>
+            ${someSelected ? `
+              <button type="button" class="dev-secondary danger" data-ge-bulk-delete>Удалить (${selected.size})</button>
+              <span class="grade-bulk-sep"></span>
+              <label class="grade-inline-label">Баллы: <input type="number" min="0" max="100" value="1" style="width:56px" data-ge-bulk-pts>
+                <button type="button" class="dev-secondary" data-ge-bulk-set-pts>Назначить</button></label>
+              <label class="grade-inline-label">Тип:
+                <select data-ge-bulk-type>${Object.entries(GRADE_QUESTION_TYPES).map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select>
+                <button type="button" class="dev-secondary" data-ge-bulk-set-type>Назначить</button></label>
+            ` : ''}
+            <div class="grade-editor-toolbar-right">
+              <span class="dev-chip dev-chip-compact">${questions.length} вопр. · ${totalPts} б.</span>
+              ${!questions.length ? `<button type="button" class="dev-secondary" data-ge-load-demo>Загрузить демо тест</button>` : ''}
+              <button type="button" class="dev-primary" data-ge-add>+ Вопрос</button>
+              <button type="button" class="dev-primary" data-ge-save>Сохранить</button>
+            </div>
+          </div>
+          <div class="grade-questions-list" data-ge-list>
+            ${questions.length
+              ? questions.map((q, qi) => renderQuestionCard(q, qi)).join('')
+              : '<p class="practice-empty">Нет вопросов. Добавь первый или загрузи демо тест.</p>'}
+          </div>
+          <section class="dev-roadmap-section" style="margin-top:16px">
+            <div class="dev-roadmap-section-head"><h4>JSON preview</h4><span>Автообновляется</span></div>
+            <textarea class="dev-roadmap-json-editor" rows="10" data-ge-json-preview readonly>${escapeHtml(JSON.stringify(gradeData, null, 2))}</textarea>
+          </section>
+        </div>
+      `;
+      bindListEvents();
+    };
+
+    const bindListEvents = () => {
+      mount.querySelector('[data-ge-select-all]')?.addEventListener('change', (e) => {
+        if (e.target.checked) (gradeData.questions || []).forEach((_, i) => selected.add(i));
+        else selected.clear();
+        render();
+      });
+
+      mount.querySelectorAll('[data-q-check]').forEach((cb) => {
+        cb.addEventListener('change', (e) => {
+          const i = Number(e.target.dataset.qCheck);
+          if (e.target.checked) selected.add(i); else selected.delete(i);
+          render();
+        });
+      });
+
+      mount.querySelector('[data-ge-bulk-delete]')?.addEventListener('click', () => {
+        if (!confirm(`Удалить ${selected.size} вопрос(а)?`)) return;
+        gradeData.questions = (gradeData.questions || []).filter((_, i) => !selected.has(i));
+        selected.clear();
+        persistGradeData(profession, gradeData);
+        render();
+      });
+
+      mount.querySelector('[data-ge-bulk-set-pts]')?.addEventListener('click', () => {
+        const pts = Number(mount.querySelector('[data-ge-bulk-pts]')?.value) || 1;
+        selected.forEach((i) => { if (gradeData.questions[i]) gradeData.questions[i].points = pts; });
+        persistGradeData(profession, gradeData);
+        render();
+      });
+
+      mount.querySelector('[data-ge-bulk-set-type]')?.addEventListener('click', () => {
+        const type = mount.querySelector('[data-ge-bulk-type]')?.value;
+        if (!type) return;
+        selected.forEach((i) => { if (gradeData.questions[i]) gradeData.questions[i].type = type; });
+        persistGradeData(profession, gradeData);
+        render();
+      });
+
+      mount.querySelector('[data-ge-load-demo]')?.addEventListener('click', () => {
+        gradeData = JSON.parse(JSON.stringify(GRADE_DEMO_TEST));
+        persistGradeData(profession, gradeData);
+        render();
+      });
+
+      mount.querySelector('[data-ge-add]')?.addEventListener('click', () => {
+        gradeData.questions = gradeData.questions || [];
+        gradeData.questions.push({ id: `q-${Date.now()}`, type: 'single', text: '', points: 1, options: [], correct: [], language: 'javascript', starterCode: '', successCriteria: '' });
+        persistGradeData(profession, gradeData);
+        render();
+      });
+
+      mount.querySelector('[data-ge-save]')?.addEventListener('click', () => {
+        persistGradeData(profession, gradeData);
+        syncJsonPreview();
+        render();
+      });
+
+      mount.querySelectorAll('[data-q-up]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const i = Number(btn.dataset.qUp);
+          if (i === 0) return;
+          [gradeData.questions[i - 1], gradeData.questions[i]] = [gradeData.questions[i], gradeData.questions[i - 1]];
+          persistGradeData(profession, gradeData);
+          render();
+        });
+      });
+
+      mount.querySelectorAll('[data-q-down]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const i = Number(btn.dataset.qDown);
+          if (i >= (gradeData.questions.length - 1)) return;
+          [gradeData.questions[i + 1], gradeData.questions[i]] = [gradeData.questions[i], gradeData.questions[i + 1]];
+          persistGradeData(profession, gradeData);
+          render();
+        });
+      });
+
+      mount.querySelectorAll('[data-q-delete]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const i = Number(btn.dataset.qDelete);
+          gradeData.questions.splice(i, 1);
+          selected.delete(i);
+          persistGradeData(profession, gradeData);
+          render();
+        });
+      });
+
+      mount.querySelectorAll('[data-q-expand]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const i = Number(btn.dataset.qExpand);
+          const body = mount.querySelector(`[data-q-body="${i}"]`);
+          if (!body) return;
+          body.hidden = !body.hidden;
+          btn.textContent = body.hidden ? 'Изменить' : 'Свернуть';
+          if (!body.hidden) bindFormEvents(i);
+        });
+      });
+    };
+
+    const bindFormEvents = (qi) => {
+      mount.querySelector(`[data-ge-add-option="${qi}"]`)?.addEventListener('click', () => {
+        const q = gradeData.questions[qi];
+        if (!q) return;
+        q.options = q.options || [];
+        q.options.push('Новый вариант');
+        persistGradeData(profession, gradeData);
+        render();
+      });
+
+      mount.querySelectorAll(`[data-ge-del-option="${qi}"]`).forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const q = gradeData.questions[qi];
+          const oi = Number(btn.dataset.oi);
+          q.options.splice(oi, 1);
+          q.correct = (q.correct || []).filter((c) => c !== oi).map((c) => (c > oi ? c - 1 : c));
+          persistGradeData(profession, gradeData);
+          render();
+        });
+      });
+
+      mount.querySelector(`[data-qf-apply="${qi}"]`)?.addEventListener('click', () => {
+        const q = gradeData.questions[qi];
+        if (!q) return;
+        mount.querySelectorAll(`[data-qf-idx="${qi}"]`).forEach((inp) => {
+          const field = inp.dataset.qfField;
+          q[field] = inp.type === 'number' ? Number(inp.value) : inp.value;
+        });
+        const optTexts = mount.querySelectorAll(`[data-ge-opt-text="${qi}"]`);
+        if (optTexts.length) q.options = Array.from(optTexts).map((inp) => inp.value);
+        const correctInputs = mount.querySelectorAll(`[data-ge-correct="${qi}"]`);
+        if (correctInputs.length) q.correct = Array.from(correctInputs).filter((inp) => inp.checked).map((inp) => Number(inp.dataset.oi));
+        persistGradeData(profession, gradeData);
+        render();
+      });
+    };
+
+    render();
+  };
+
   const renderLearningEditor = () => {
     const fullRoadmap = state.learningMode === 'edit' && state.selectedSection === 'roadmap' && !!state.selectedEntry;
     document.body.classList.toggle('dev-roadmap-mode', fullRoadmap);
@@ -1609,10 +1932,8 @@
       roadmap: renderRoadmapEditor(data),
       practice: `<div data-practice-editor-mount></div>`,
       grade: `
-        <label>
-          Редактор грейда
-          <textarea rows="16" data-learning-grade>${escapeHtml(data.grade || '')}</textarea>
-        </label>
+        <textarea data-learning-grade hidden>${escapeHtml(typeof data.grade === 'object' ? JSON.stringify(data.grade) : (data.grade || ''))}</textarea>
+        <div data-grade-editor-mount></div>
       `,
       interview: `
         <label>
@@ -1695,12 +2016,16 @@
 
     if (state.selectedSection === 'roadmap') bindRoadmapEditor();
     if (state.selectedSection === 'practice') bindPracticeEditor();
+    if (state.selectedSection === 'grade') bindGradeEditor();
 
     learningEditor.querySelector('[data-learning-save]')?.addEventListener('click', () => {
       const store = getLearningStore();
       const current = { ...(store[state.selectedEntry] || ensureProfessionData(state.selectedEntry)) };
       current.roadmap = normalizeRoadmap(current);
-      current.grade = learningEditor.querySelector('[data-learning-grade]')?.value ?? current.grade;
+      const gradeRaw = learningEditor.querySelector('[data-learning-grade]')?.value;
+      if (gradeRaw) {
+        try { current.grade = JSON.parse(gradeRaw); } catch { current.grade = gradeRaw; }
+      }
       current.interview = learningEditor.querySelector('[data-learning-interview]')?.value ?? current.interview;
       store[state.selectedEntry] = current;
       write(K.learningByItem, store);
