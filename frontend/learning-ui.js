@@ -1252,7 +1252,7 @@
         const isDetailed = q.type === 'detailed';
         answerHtml = isDetailed
           ? `<textarea class="grade-detail-textarea" rows="5" placeholder="Развёрнутый ответ..." data-grade-text>${escapeHtml(prev || '')}</textarea>`
-          : `<input type="text" class="grade-text-input" placeholder="Введи ответ..." value="${escapeAttr(prev || '')}" data-grade-text>`;
+          : `<input type="text" class="grade-text-input" placeholder="Введи ответ..." value="${escapeHtml(prev || '')}" data-grade-text>`;
       }
 
       panel.innerHTML = `
